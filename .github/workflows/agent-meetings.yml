@@ -321,7 +321,11 @@ jobs:
             ];
 
             // ── Assemble full report ──
+            // Include a hidden shift marker so deduplication works consistently for both
+            // the daily file and issue comments, regardless of format changes.
+            const shiftMarker = `<!-- standup-shift:${shift} -->`;
             const report = [
+              shiftMarker,
               `# 🗓️ Daily Standup — ${shift} Shift (${today})`,
               ``,
               `**Participants:** Orchestrator, CEO, CPO, CTO, Engineering, DevOps, QA, Marketing, Sales, CS, CFO, CISO, HR, Legal`,
@@ -331,23 +335,36 @@ jobs:
             ].join('\n');
 
             // ── Write daily-standups/YYYY-MM-DD.md via API ──
+            // Append this shift's report to the daily file rather than overwriting,
+            // so all three shifts (Night / Morning / Afternoon) are preserved.
             const standupPath = `daily-standups/${today}.md`;
             let existingSha = null;
+            let existingContent = '';
             try {
               const { data: existing } = await github.rest.repos.getContent({
                 owner, repo: hqRepo, path: standupPath,
               });
               existingSha = existing.sha;
+              existingContent = Buffer.from(existing.content, 'base64').toString('utf-8');
             } catch {}
 
-            const fileParams = {
-              owner, repo: hqRepo, path: standupPath,
-              message: `📋 Standup summary ${today} ${shift}`,
-              content: Buffer.from(report).toString('base64'),
-              committer: { name: 'Standup Facilitator', email: 'standup@creativware.dev' },
-            };
-            if (existingSha) fileParams.sha = existingSha;
-            await github.rest.repos.createOrUpdateFileContents(fileParams);
+            // Guard: skip writing if this shift was already recorded in the file
+            if (!existingContent.includes(shiftMarker)) {
+              const newContent = existingContent
+                ? existingContent.trimEnd() + '\n\n---\n\n' + report
+                : report;
+
+              const fileParams = {
+                owner, repo: hqRepo, path: standupPath,
+                message: `📋 Standup summary ${today} ${shift}`,
+                content: Buffer.from(newContent).toString('base64'),
+                committer: { name: 'Standup Facilitator', email: 'standup@creativware.dev' },
+              };
+              if (existingSha) fileParams.sha = existingSha;
+              await github.rest.repos.createOrUpdateFileContents(fileParams);
+            } else {
+              console.log(`⏭️ ${shift} shift already recorded in ${standupPath} — skipping file write`);
+            }
 
             // ── Create or update standup issue ──
             const standupTitle = `[STANDUP] ${today}`;
@@ -357,9 +374,19 @@ jobs:
             const todayStandup = existingIssues.find(i => i.title === standupTitle);
 
             if (todayStandup) {
-              await github.rest.issues.createComment({
-                owner, repo: hqRepo, issue_number: todayStandup.number, body: report,
+              // Guard: check if this shift was already commented to prevent duplicates
+              // from concurrent workflow runs — use the same shift marker embedded in the report
+              const { data: comments } = await github.rest.issues.listComments({
+                owner, repo: hqRepo, issue_number: todayStandup.number, per_page: 30,
               });
+              const shiftAlreadyPosted = comments.some(c => c.body.includes(shiftMarker));
+              if (!shiftAlreadyPosted) {
+                await github.rest.issues.createComment({
+                  owner, repo: hqRepo, issue_number: todayStandup.number, body: report,
+                });
+              } else {
+                console.log(`⏭️ ${shift} shift already commented on issue — skipping duplicate`);
+              }
             } else {
               for (const old of existingIssues) {
                 if (old.title !== standupTitle) {
