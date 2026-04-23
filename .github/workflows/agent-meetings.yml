@@ -1,7 +1,7 @@
 name: "🤝 Agent Meetings — Company Coordination"
 
-# Company-wide meeting system aggregating ALL product repos.
-# - Standup: every 8 hours — cross-product status
+# Outcome-focused standup facilitator + strategy review + escalation
+# - Standup: every 8 hours — structured 6-segment agenda
 # - Strategy review: weekly on Mondays
 # - Escalation: on-demand via dispatcher
 
@@ -26,7 +26,7 @@ on:
     types: [meeting-requested]
 
 permissions:
-  contents: read
+  contents: write
   issues: write
   pull-requests: read
 
@@ -39,87 +39,329 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.AGENT_PAT || secrets.GITHUB_TOKEN }}
 
-      - name: "🗓️ Company Standup"
+      - name: "🗓️ Daily Standup Facilitator"
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.AGENT_PAT || secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
+            const path = require('path');
             const owner = context.repo.owner;
             const hqRepo = context.repo.repo;
             const now = new Date();
             const today = now.toISOString().split('T')[0];
             const shift = now.getUTCHours() < 8 ? 'Night' : now.getUTCHours() < 16 ? 'Morning' : 'Afternoon';
             const eightHoursAgo = new Date(Date.now() - 8 * 3600000).toISOString();
+            const OWNER_HANDLE = 'fratei';
 
+            // ── Load registry ──
             const registry = JSON.parse(fs.readFileSync('products/registry.json', 'utf-8'));
             const products = registry.products.filter(p => p.status === 'live');
 
-            const sections = [];
-            let totalOpenPRs = 0, totalMerged = 0, totalBugs = 0, totalIncidents = 0, totalPending = 0;
+            // ── Load company goal from strategy/README.md ──
+            let companyGoal = 'No company goal defined — update strategy/README.md';
+            try {
+              const strategyContent = fs.readFileSync('strategy/README.md', 'utf-8');
+              const dirMatch = strategyContent.match(/Approved Strategic Direction[^]*?Owner-approved priority:\*\*\s*(.+)/);
+              if (dirMatch) companyGoal = dirMatch[1].trim();
+            } catch {}
+
+            // ── Load opportunity briefs ──
+            const opportunities = [];
+            const oppDir = 'strategy/opportunities';
+            try {
+              const oppFiles = fs.readdirSync(oppDir).filter(f => f.endsWith('.md') && f !== 'TEMPLATE.md');
+              for (const file of oppFiles) {
+                const content = fs.readFileSync(path.join(oppDir, file), 'utf-8');
+                const statusMatch = content.match(/\*\*Status:\*\*\s*(.+)/);
+                const nameMatch = content.match(/^##\s+(.+)/m);
+                opportunities.push({
+                  name: nameMatch ? nameMatch[1] : file.replace('.md', ''),
+                  status: statusMatch ? statusMatch[1].trim() : 'unknown',
+                  file,
+                });
+              }
+            } catch {}
+
+            // ══════════════════════════════════════════════
+            // SEGMENT 1: Quick Alignment
+            // ══════════════════════════════════════════════
+            const seg1 = [
+              `## 1️⃣ Quick Alignment`,
+              ``,
+              `**Company Goal:** ${companyGoal}`,
+              ``,
+              `> Is today's focus still correct? Any major change from yesterday?`,
+            ];
+
+            // ══════════════════════════════════════════════
+            // SEGMENT 2: Market & Opportunity Intelligence
+            // ══════════════════════════════════════════════
+            const marketSignals = [];
+            const oppUpdates = [];
+
+            // Scan all product repos + HQ for market signals
+            const allRepos = [...products.map(p => p.repo.replace(/^[^/]+\//, '')), hqRepo];
+            for (const repo of allRepos) {
+              try {
+                const { data: signals } = await github.rest.issues.listForRepo({
+                  owner, repo, state: 'all', labels: 'market-signal',
+                  since: eightHoursAgo, per_page: 10,
+                });
+                for (const s of signals) {
+                  marketSignals.push(`- 📡 [${s.title}](${s.html_url}) (${repo})`);
+                }
+
+                const { data: opps } = await github.rest.issues.listForRepo({
+                  owner, repo, state: 'all', labels: 'opportunity',
+                  since: eightHoursAgo, per_page: 10,
+                });
+                for (const o of opps) {
+                  oppUpdates.push(`- 💡 [${o.title}](${o.html_url}) (${repo})`);
+                }
+              } catch {}
+            }
+
+            // Add opportunity briefs from files
+            for (const opp of opportunities) {
+              oppUpdates.push(`- 📋 **${opp.name}** — Status: *${opp.status}* (strategy/opportunities/${opp.file})`);
+            }
+
+            const seg2 = [
+              `## 2️⃣ Market & Opportunity Intelligence`,
+              ``,
+              `### New Market Signals (last 8h)`,
+              marketSignals.length ? marketSignals.join('\n') : '- _No new market signals. Agents should actively research trends, competitors, and emerging verticals._',
+              ``,
+              `### Opportunity Pipeline`,
+              oppUpdates.length ? oppUpdates.join('\n') : '- _No tracked opportunities. Create briefs in `strategy/opportunities/` using the template._',
+              ``,
+              `> ⚡ **Facilitator note:** If signals are vague, agents must clarify: Which ICP? What evidence? What value?`,
+            ];
+
+            // ══════════════════════════════════════════════
+            // SEGMENT 3: Product Health, Gaps & Customer Feedback
+            // ══════════════════════════════════════════════
+            const productSections = [];
+            let totalOpenPRs = 0, totalMerged = 0, totalBugs = 0, totalIncidents = 0;
+            const allGaps = [];
+            const allFeedback = [];
 
             for (const product of products) {
               const repo = product.repo.replace(/^[^/]+\//, '');
               try {
-                const { data: openPRs } = await github.rest.pulls.list({ owner, repo, state: 'open', per_page: 20 });
+                const { data: openPRs } = await github.rest.pulls.list({ owner, repo, state: 'open', per_page: 30 });
                 const { data: closedPRs } = await github.rest.pulls.list({
-                  owner, repo, state: 'closed', sort: 'updated', direction: 'desc', per_page: 10,
+                  owner, repo, state: 'closed', sort: 'updated', direction: 'desc', per_page: 15,
                 });
                 const merged = closedPRs.filter(pr => pr.merged_at && new Date(pr.merged_at) > new Date(eightHoursAgo));
                 const { data: bugs } = await github.rest.issues.listForRepo({ owner, repo, state: 'open', labels: 'bug', per_page: 50 });
                 const { data: incidents } = await github.rest.issues.listForRepo({ owner, repo, state: 'open', labels: 'incident', per_page: 10 });
-                const { data: pending } = await github.rest.issues.listForRepo({ owner, repo, state: 'open', labels: 'needs-owner-approval', per_page: 20 });
 
                 totalOpenPRs += openPRs.length;
                 totalMerged += merged.length;
                 totalBugs += bugs.length;
                 totalIncidents += incidents.length;
-                totalPending += pending.length;
 
-                sections.push([
-                  `### 📦 ${product.name} (\`${repo}\`)`,
-                  `- Open PRs: ${openPRs.length} | Merged (8h): ${merged.length}`,
-                  `- Bugs: ${bugs.length} | Incidents: ${incidents.length}`,
-                  `- Decisions pending: ${pending.length}`,
-                  pending.slice(0, 2).map(d => `  - #${d.number}: ${d.title}`).join('\n'),
+                // Feature gaps
+                for (const label of ['feature-gap', 'enhancement', 'missing-feature']) {
+                  try {
+                    const { data: gaps } = await github.rest.issues.listForRepo({ owner, repo, state: 'open', labels: label, per_page: 10 });
+                    for (const g of gaps) {
+                      allGaps.push(`- [${g.title}](${g.html_url}) \`${label}\``);
+                    }
+                  } catch {}
+                }
+
+                // Customer feedback
+                try {
+                  const { data: fb } = await github.rest.issues.listForRepo({ owner, repo, state: 'all', labels: 'customer-feedback', since: eightHoursAgo, per_page: 10 });
+                  for (const f of fb) {
+                    allFeedback.push(`- [${f.title}](${f.html_url}) (${repo})`);
+                  }
+                } catch {}
+
+                // Recent commits for outcomes
+                let recentCommits = [];
+                try {
+                  const { data: commits } = await github.rest.repos.listCommits({ owner, repo, since: eightHoursAgo, per_page: 5 });
+                  recentCommits = commits.map(c => `  - \`${c.sha.slice(0,7)}\` ${c.commit.message.split('\n')[0]}`);
+                } catch {}
+
+                productSections.push([
+                  `#### 📦 ${product.name} (\`${repo}\`)`,
+                  `| Metric | Value |`,
+                  `|--------|-------|`,
+                  `| Open PRs | ${openPRs.length} |`,
+                  `| Merged (8h) | ${merged.length} |`,
+                  `| Open Bugs | ${bugs.length} |`,
+                  `| Incidents | ${incidents.length} |`,
+                  recentCommits.length ? `\n**Recent outcomes:**\n${recentCommits.join('\n')}` : '',
                 ].filter(Boolean).join('\n'));
+
               } catch (e) {
-                sections.push(`### 📦 ${product.name} — ⚠️ scan failed`);
+                productSections.push(`#### 📦 ${product.name} — ⚠️ scan failed: ${e.message}`);
               }
             }
 
-            const report = [
-              `## 🗓️ Company Standup — ${shift} Shift (${today})`,
+            const seg3 = [
+              `## 3️⃣ Product Health, Gaps & Customer Feedback`,
               ``,
-              `### Summary`,
-              `| Metric | Value |`,
+              `### Health Dashboard`,
+              `| Metric | Total |`,
               `|--------|-------|`,
               `| Products | ${products.length} |`,
               `| Open PRs | ${totalOpenPRs} |`,
               `| Merged (8h) | ${totalMerged} |`,
               `| Open Bugs | ${totalBugs} |`,
               `| Incidents | ${totalIncidents} |`,
-              `| Decisions Pending | ${totalPending} |`,
               ``,
-              ...sections,
+              ...productSections,
+              ``,
+              `### Feature Gaps`,
+              allGaps.length ? allGaps.join('\n') : '- _No labeled feature gaps. Use labels: `feature-gap`, `enhancement`, `missing-feature`._',
+              ``,
+              `### Customer Feedback (last 8h)`,
+              allFeedback.length ? allFeedback.join('\n') : '- _No new customer feedback. Agents should log feedback with label `customer-feedback`._',
+            ];
+
+            // ══════════════════════════════════════════════
+            // SEGMENT 4: Execution Updates
+            // ══════════════════════════════════════════════
+            const execUpdates = [];
+            for (const product of products) {
+              const repo = product.repo.replace(/^[^/]+\//, '');
+              try {
+                const { data: closedIssues } = await github.rest.issues.listForRepo({
+                  owner, repo, state: 'closed', since: eightHoursAgo, per_page: 10,
+                });
+                const actualIssues = closedIssues.filter(i => !i.pull_request);
+                if (actualIssues.length) {
+                  execUpdates.push(`**${product.name}** — ${actualIssues.length} issues resolved:`);
+                  for (const i of actualIssues.slice(0, 5)) {
+                    execUpdates.push(`- ✅ [${i.title}](${i.html_url})`);
+                  }
+                }
+              } catch {}
+            }
+
+            const seg4 = [
+              `## 4️⃣ Execution Updates (last 8h)`,
+              ``,
+              execUpdates.length ? execUpdates.join('\n') : '- _No issues closed in the last 8 hours._',
+              ``,
+              `> **Facilitator:** Agents should speak in *outcomes*, not tasks. "What changed because of your work?"`,
+            ];
+
+            // ══════════════════════════════════════════════
+            // SEGMENT 5: Decisions & Escalations
+            // ══════════════════════════════════════════════
+            const pendingDecisions = [];
+            const blockers = [];
+
+            for (const repo of allRepos) {
+              try {
+                const { data: pending } = await github.rest.issues.listForRepo({
+                  owner, repo, state: 'open', labels: 'needs-owner-approval', per_page: 20,
+                });
+                for (const p of pending) {
+                  pendingDecisions.push(`- 🔴 [${p.title}](${p.html_url}) — @${OWNER_HANDLE} decision needed`);
+                }
+              } catch {}
+
+              try {
+                const { data: blocked } = await github.rest.issues.listForRepo({
+                  owner, repo, state: 'open', labels: 'blocker', per_page: 10,
+                });
+                for (const b of blocked) {
+                  blockers.push(`- 🚫 [${b.title}](${b.html_url}) (${repo})`);
+                }
+              } catch {}
+            }
+
+            const seg5 = [
+              `## 5️⃣ Decisions & Escalations`,
+              ``,
+              `### Pending Owner Decisions (@${OWNER_HANDLE})`,
+              pendingDecisions.length ? pendingDecisions.join('\n') : '- _No pending decisions._',
+              ``,
+              `### Blockers`,
+              blockers.length ? blockers.join('\n') : '- _No active blockers._',
+            ];
+
+            // ══════════════════════════════════════════════
+            // SEGMENT 6: Standup Summary
+            // ══════════════════════════════════════════════
+
+            // Determine if the standup produced insight
+            const hasInsight = marketSignals.length > 0 || oppUpdates.length > 0 || allFeedback.length > 0;
+            const insightNote = hasInsight
+              ? ''
+              : `\n> ⚠️ **No new market or customer insight this standup.** Agents should research one of: competitor moves, customer feedback themes, or emerging verticals before next standup.`;
+
+            const seg6 = [
+              `## 6️⃣ Summary & Next Steps`,
+              ``,
+              `| Key Fact | Value |`,
+              `|----------|-------|`,
+              `| Market signals | ${marketSignals.length} |`,
+              `| Opportunities tracked | ${opportunities.length + oppUpdates.length} |`,
+              `| Feedback items | ${allFeedback.length} |`,
+              `| Bugs open | ${totalBugs} |`,
+              `| Decisions pending | ${pendingDecisions.length} |`,
+              `| Blockers | ${blockers.length} |`,
+              insightNote,
               ``,
               `---`,
-              `*Next standup in ~8 hours. Generated by CreativeWare HQ.*`,
+              `*Next standup in ~8 hours. @${OWNER_HANDLE} — review pending decisions above.*`,
+              `*Generated by CreativeWare Standup Facilitator Agent.*`,
+            ];
+
+            // ── Assemble full report ──
+            const report = [
+              `# 🗓️ Daily Standup — ${shift} Shift (${today})`,
+              ``,
+              `**Participants:** Orchestrator, CEO, CPO, CTO, Engineering, DevOps, QA, Marketing, Sales, CS, CFO, CISO, HR, Legal`,
+              `**Facilitator:** Standup Facilitator Agent`,
+              ``,
+              ...seg1, '', ...seg2, '', ...seg3, '', ...seg4, '', ...seg5, '', ...seg6,
             ].join('\n');
 
+            // ── Write daily-standups/YYYY-MM-DD.md via API ──
+            const standupPath = `daily-standups/${today}.md`;
+            let existingSha = null;
+            try {
+              const { data: existing } = await github.rest.repos.getContent({
+                owner, repo: hqRepo, path: standupPath,
+              });
+              existingSha = existing.sha;
+            } catch {}
+
+            const fileParams = {
+              owner, repo: hqRepo, path: standupPath,
+              message: `📋 Standup summary ${today} ${shift}`,
+              content: Buffer.from(report).toString('base64'),
+              committer: { name: 'Standup Facilitator', email: 'standup@creativware.dev' },
+            };
+            if (existingSha) fileParams.sha = existingSha;
+            await github.rest.repos.createOrUpdateFileContents(fileParams);
+
+            // ── Create or update standup issue ──
             const standupTitle = `[STANDUP] ${today}`;
-            const { data: existing } = await github.rest.issues.listForRepo({
+            const { data: existingIssues } = await github.rest.issues.listForRepo({
               owner, repo: hqRepo, state: 'open', labels: 'standup', per_page: 5,
             });
-            const todayStandup = existing.find(i => i.title === standupTitle);
+            const todayStandup = existingIssues.find(i => i.title === standupTitle);
 
             if (todayStandup) {
               await github.rest.issues.createComment({
                 owner, repo: hqRepo, issue_number: todayStandup.number, body: report,
               });
             } else {
-              for (const old of existing) {
+              for (const old of existingIssues) {
                 if (old.title !== standupTitle) {
                   await github.rest.issues.update({ owner, repo: hqRepo, issue_number: old.number, state: 'closed' });
                 }
