@@ -164,7 +164,9 @@ jobs:
             const products = registry.products.filter(p => p.status === 'live');
             const allFindings = [];
 
-            // Extended list of sensitive keywords to detect in commit messages
+            // Keywords that suggest actual credential exposure when followed by an assignment or value.
+            // These are checked using context-aware patterns to reduce false positives from
+            // routine commit messages like "fix: token refresh logic" or "feat: password hashing".
             const sensitiveKeywords = [
               'password', 'passwd', 'secret', 'api_key', 'apikey',
               'token', 'credential', 'private_key', 'privatekey',
@@ -172,18 +174,70 @@ jobs:
               'client_secret', 'clientsecret',
             ];
 
+            // Commit message patterns that indicate a keyword is used in a safe, descriptive context
+            // (e.g. feature work, refactoring, testing) rather than credential exposure.
+            const safeCommitPatterns = [
+              /\btoken\s+(refresh|expir|validat|generat|rotat|handl|check|verif|parse|encod|hash|reset|revok)/i,
+              /\b(refresh|expir|validat|generat|rotat|handl|check|verif|parse|encod|hash|reset|revok)\s+token/i,
+              /\bjwt\b/i,
+              /\bpassword\s+(hash|strength|validat|reset|change|policy|encod|salt)/i,
+              /\b(hash|salt|bcrypt|argon|pbkdf)\s+password/i,
+              /\badd\s+(auth|security|token|credential)\s+(test|spec|middleware|flow|support|endpoint)/i,
+              /\b(auth|security|token)\s+test/i,
+              /\btest\s+(auth|security|token)/i,
+              /\bredact\s+(sensitive|secret|token|password)/i,
+            ];
+
+            // Patterns that strongly suggest an actual credential value is present in the commit message.
+            // These fire a high-severity warning regardless of safe patterns.
+            // Upper bounds are set to prevent catastrophic backtracking on very long strings.
+            const credentialValuePatterns = [
+              /[a-zA-Z_]+\s*=\s*["']?[A-Za-z0-9+/]{20,256}["']?/,  // KEY=longvalue (env-var style)
+              /[a-zA-Z_]+:\s*["'][A-Za-z0-9+/]{20,256}["']/,         // key: "longvalue"
+              /eyJ[A-Za-z0-9_-]{10,1024}/,                            // JWT-like base64 prefix
+              /ghp_[A-Za-z0-9]{36}/,                                  // GitHub PAT (exact 36-char suffix)
+              /sk-[A-Za-z0-9]{32,128}/,                               // OpenAI-style key
+            ];
+
+            // Test file pattern: changes to *.test.js / *.spec.ts etc. are expected and healthy.
+            const testFilePattern = /(__tests__|\.test\.|\.spec\.)/;
+
+            // Rolling window for commit scanning (avoids re-reporting old commits every audit cycle).
+            const AUDIT_WINDOW_DAYS = 7;
+
             for (const product of products) {
               const repo = product.repo.replace(/^[^/]+\//, '');
               try {
-                // Scan more commits for better coverage
+                // Only scan commits within the audit window to avoid repeatedly reporting old findings.
+                const since = new Date(Date.now() - AUDIT_WINDOW_DAYS * 24 * 3600 * 1000).toISOString();
                 const { data: commits } = await github.rest.repos.listCommits({
-                  owner, repo, per_page: 50,
+                  owner, repo, since, per_page: 50,
                 });
+                const reportedShas = new Set();
                 for (const c of commits) {
-                  const msg = (c.commit.message || '').toLowerCase();
-                  const matched = sensitiveKeywords.find(kw => msg.includes(kw));
+                  if (reportedShas.has(c.sha)) continue;
+                  const msg = c.commit.message || '';
+                  const msgLower = msg.toLowerCase();
+
+                  // First check for high-confidence credential value patterns (always warn).
+                  const hasCredentialValue = credentialValuePatterns.some(p => p.test(msg));
+                  if (hasCredentialValue) {
+                    allFindings.push(`⚠️ **${repo}**: Commit ${c.sha.slice(0,7)} message appears to contain a credential value`);
+                    reportedShas.add(c.sha);
+                    continue;
+                  }
+
+                  // Check for sensitive keywords, but skip if the context matches a safe pattern.
+                  const matched = sensitiveKeywords.find(kw => msgLower.includes(kw));
                   if (matched) {
-                    allFindings.push(`⚠️ **${repo}**: Commit ${c.sha.slice(0,7)} message contains sensitive keyword (\`${matched}\`)`);
+                    const isSafe = safeCommitPatterns.some(p => p.test(msg));
+                    if (!isSafe) {
+                      allFindings.push(`⚠️ **${repo}**: Commit ${c.sha.slice(0,7)} message contains sensitive keyword (\`${matched}\`)`);
+                      reportedShas.add(c.sha);
+                    } else {
+                      allFindings.push(`ℹ️ **${repo}**: Commit ${c.sha.slice(0,7)} references \`${matched}\` (context appears safe — verify if unexpected)`);
+                      reportedShas.add(c.sha);
+                    }
                   }
                 }
 
@@ -196,8 +250,23 @@ jobs:
                     const secFiles = files.filter(f =>
                       f.filename.includes('auth') || f.filename.includes('security') || f.filename.includes('.env')
                     );
-                    if (secFiles.length > 0) {
-                      allFindings.push(`ℹ️ **${repo}**: PR #${pr.number} modified security files: ${secFiles.map(f => f.filename).join(', ')}`);
+                    if (secFiles.length === 0) continue;
+
+                    // Separate production source files (⚠️) from test/spec files (ℹ️) in a single pass.
+                    const { prodSecFiles, testSecFiles } = secFiles.reduce(
+                      (acc, f) => {
+                        if (testFilePattern.test(f.filename)) acc.testSecFiles.push(f);
+                        else acc.prodSecFiles.push(f);
+                        return acc;
+                      },
+                      { prodSecFiles: [], testSecFiles: [] }
+                    );
+
+                    if (prodSecFiles.length > 0) {
+                      allFindings.push(`⚠️ **${repo}**: PR #${pr.number} modified security source files: ${prodSecFiles.map(f => f.filename).join(', ')}`);
+                    }
+                    if (testSecFiles.length > 0) {
+                      allFindings.push(`ℹ️ **${repo}**: PR #${pr.number} modified security test files: ${testSecFiles.map(f => f.filename).join(', ')}`);
                     }
                   } catch {}
                 }
