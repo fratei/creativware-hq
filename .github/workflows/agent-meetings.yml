@@ -103,6 +103,38 @@ jobs:
             const marketSignals = [];
             const oppUpdates = [];
 
+            // ── Read latest web research brief for real signals ──
+            let webResearchSummary = '';
+            try {
+              const researchDir = 'strategy/research';
+              const researchFiles = fs.readdirSync(researchDir)
+                .filter(f => f.match(/^\d{4}-\d{2}-\d{2}\.md$/))
+                .sort()
+                .reverse();
+              if (researchFiles.length > 0) {
+                const briefContent = fs.readFileSync(path.join(researchDir, researchFiles[0]), 'utf-8');
+                const briefDate = researchFiles[0].replace('.md', '');
+                const takeaways = briefContent.match(/## 🎯 Actionable Takeaways\n([\s\S]*?)(?=\n---)/);
+                const newsSection = briefContent.match(/### Industry News\n([\s\S]*?)(?=\n###)/);
+                const userPains = briefContent.match(/### User Pain Points.*?\n([\s\S]*?)(?=\n###|\n## )/);
+                const competitorSection = briefContent.match(/## 🎯 Competitor Activity\n([\s\S]*?)(?=\n---|\n## )/);
+
+                webResearchSummary = [
+                  `### 🔬 Latest Web Research (${briefDate})`,
+                  '',
+                  takeaways ? takeaways[1].trim().split('\n').slice(0, 5).join('\n') : '_No takeaways._',
+                  '',
+                  newsSection ? '**Top news:**\n' + newsSection[1].trim().split('\n').slice(0, 3).join('\n') : '',
+                  '',
+                  userPains ? '**User pain points:**\n' + userPains[1].trim().split('\n').slice(0, 3).join('\n') : '',
+                  '',
+                  competitorSection ? '**Competitor moves:**\n' + competitorSection[1].trim().split('\n').filter(l => l.startsWith('- ')).slice(0, 3).join('\n') : '',
+                ].filter(Boolean).join('\n');
+              }
+            } catch (e) {
+              console.log(`📖 No web research briefs: ${e.message}`);
+            }
+
             // Scan all product repos + HQ for market signals
             const allRepos = [...products.map(p => p.repo.replace(/^[^/]+\//, '')), hqRepo];
             for (const repo of allRepos) {
@@ -133,6 +165,8 @@ jobs:
             const seg2 = [
               `## 2️⃣ Market & Opportunity Intelligence`,
               ``,
+              webResearchSummary ? webResearchSummary : '',
+              ``,
               `### New Market Signals (last 8h)`,
               marketSignals.length ? marketSignals.join('\n') : '- _No new market signals. Agents should actively research trends, competitors, and emerging verticals._',
               ``,
@@ -140,7 +174,7 @@ jobs:
               oppUpdates.length ? oppUpdates.join('\n') : '- _No tracked opportunities. Create briefs in `strategy/opportunities/` using the template._',
               ``,
               `> ⚡ **Facilitator note:** If signals are vague, agents must clarify: Which ICP? What evidence? What value?`,
-            ];
+            ].filter(Boolean);
 
             // ══════════════════════════════════════════════
             // SEGMENT 3: Product Health, Gaps & Customer Feedback

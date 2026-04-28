@@ -1,0 +1,863 @@
+name: "🔬 Web Research Agent — Autonomous Market Intelligence"
+
+# Autonomous web research agent that searches the internet for real market data.
+# Runs every 12 hours, gathering signals from 5 free public APIs:
+# - Google News RSS: industry news, funding, launches
+# - HackerNews: developer sentiment, Show HN, discussions
+# - Reddit: user pain points, reviews, feature requests
+# - GitHub: OSS competition, trending repos
+# - ProductHunt: new AI/audio product launches
+#
+# Results are synthesized into strategy/research/YYYY-MM-DD.md briefs
+# and actionable GitHub issues are created for high-priority signals.
+
+on:
+  schedule:
+    - cron: "0 6,18 * * *"  # Every 12 hours at 06:00 and 18:00 UTC
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Which research job to run"
+        type: choice
+        options:
+          - "all"
+          - "market-intelligence"
+          - "user-signals"
+          - "competitor-watch"
+        default: "all"
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: web-research
+  cancel-in-progress: true
+
+env:
+  RESEARCH_DATE: ""
+
+jobs:
+
+  # ─── Job 1: Market Intelligence ──────────────────────────────────────────────
+  market-intelligence:
+    if: >-
+      github.event_name == 'schedule' ||
+      inputs.job == 'all' ||
+      inputs.job == 'market-intelligence'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      findings: ${{ steps.research.outputs.findings }}
+    steps:
+      - name: "📰 Search market news, funding & trends"
+        id: research
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          QUERIES=(
+            "speech+to+text+AI+SaaS"
+            "voice+AI+startup+funding"
+            "transcription+API+market"
+            "audio+intelligence+enterprise"
+            "meeting+transcription+tool"
+            "conversation+intelligence+platform"
+          )
+
+          FINDINGS="[]"
+
+          # ── Google News RSS ──
+          for q in "${QUERIES[@]}"; do
+            echo "🔍 Google News: $q"
+            XML=$(curl -sf --max-time 10 \
+              "https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en" || echo "")
+            if [ -n "$XML" ]; then
+              ITEMS=$(echo "$XML" | python3 -c "
+          import xml.etree.ElementTree as ET, json, sys
+          try:
+              root = ET.parse(sys.stdin).getroot()
+              items = []
+              for item in list(root.findall('.//item'))[:5]:
+                  title = item.find('title')
+                  link = item.find('link')
+                  pub = item.find('pubDate')
+                  source_el = item.find('source')
+                  if title is not None:
+                      items.append({
+                          'source': 'google_news',
+                          'query': '${q}'.replace('+', ' '),
+                          'title': title.text or '',
+                          'url': (link.text or '') if link is not None else '',
+                          'date': (pub.text or '') if pub is not None else '',
+                          'publisher': (source_el.text or '') if source_el is not None else ''
+                      })
+              print(json.dumps(items))
+          except: print('[]')
+          " 2>/dev/null || echo "[]")
+              FINDINGS=$(echo "$FINDINGS" "$ITEMS" | python3 -c "
+          import json, sys
+          parts = sys.stdin.read().strip().split('\n')
+          merged = []
+          for p in parts:
+              try: merged.extend(json.loads(p))
+              except: pass
+          print(json.dumps(merged))
+          ")
+            fi
+            sleep 1
+          done
+
+          # ── HackerNews ──
+          HN_QUERIES=("transcription AI" "speech to text" "voice AI" "meeting notes AI" "audio transcription")
+          for q in "${HN_QUERIES[@]}"; do
+            echo "🔍 HackerNews: $q"
+            HN=$(curl -sf --max-time 10 \
+              "https://hn.algolia.com/api/v1/search?query=$(echo "$q" | sed 's/ /+/g')&tags=story&hitsPerPage=5" || echo '{"hits":[]}')
+            ITEMS=$(echo "$HN" | python3 -c "
+          import json, sys
+          try:
+              d = json.load(sys.stdin)
+              items = []
+              for h in d.get('hits', []):
+                  items.append({
+                      'source': 'hackernews',
+                      'query': '$q',
+                      'title': h.get('title', ''),
+                      'url': h.get('url', '') or f\"https://news.ycombinator.com/item?id={h.get('objectID','')}\",
+                      'points': h.get('points', 0),
+                      'comments': h.get('num_comments', 0),
+                      'date': h.get('created_at', '')
+                  })
+              print(json.dumps(items))
+          except: print('[]')
+          " 2>/dev/null || echo "[]")
+            FINDINGS=$(echo "$FINDINGS" "$ITEMS" | python3 -c "
+          import json, sys
+          parts = sys.stdin.read().strip().split('\n')
+          merged = []
+          for p in parts:
+              try: merged.extend(json.loads(p))
+              except: pass
+          print(json.dumps(merged))
+          ")
+            sleep 1
+          done
+
+          # ── GitHub trending ──
+          echo "🔍 GitHub: trending speech/audio AI repos"
+          SEVEN_DAYS_AGO=$(date -u -d "7 days ago" +%Y-%m-%d 2>/dev/null || date -u -v-7d +%Y-%m-%d)
+          GH_REPOS=$(curl -sf --max-time 10 \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/search/repositories?q=speech-to-text+OR+transcription+OR+voice-AI+pushed:>=${SEVEN_DAYS_AGO}&sort=stars&order=desc&per_page=10" || echo '{"items":[]}')
+          GH_ITEMS=$(echo "$GH_REPOS" | python3 -c "
+          import json, sys
+          try:
+              d = json.load(sys.stdin)
+              items = []
+              for r in d.get('items', []):
+                  items.append({
+                      'source': 'github',
+                      'title': r.get('full_name', ''),
+                      'url': r.get('html_url', ''),
+                      'stars': r.get('stargazers_count', 0),
+                      'description': (r.get('description', '') or '')[:200],
+                      'language': r.get('language', ''),
+                      'updated': r.get('pushed_at', '')
+                  })
+              print(json.dumps(items))
+          except: print('[]')
+          " 2>/dev/null || echo "[]")
+          FINDINGS=$(echo "$FINDINGS" "$GH_ITEMS" | python3 -c "
+          import json, sys
+          parts = sys.stdin.read().strip().split('\n')
+          merged = []
+          for p in parts:
+              try: merged.extend(json.loads(p))
+              except: pass
+          print(json.dumps(merged))
+          ")
+
+          # Deduplicate by title
+          FINDINGS=$(echo "$FINDINGS" | python3 -c "
+          import json, sys
+          items = json.load(sys.stdin)
+          seen = set()
+          unique = []
+          for item in items:
+              key = item.get('title', '').lower().strip()
+              if key and key not in seen:
+                  seen.add(key)
+                  unique.append(item)
+          print(json.dumps(unique))
+          ")
+
+          COUNT=$(echo "$FINDINGS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")
+          echo "📊 Market intelligence: $COUNT unique findings"
+
+          # Save as artifact
+          echo "$FINDINGS" > /tmp/market-findings.json
+
+          # Output summary for synthesis job (truncated to fit GitHub outputs)
+          SUMMARY=$(echo "$FINDINGS" | python3 -c "
+          import json, sys
+          items = json.load(sys.stdin)
+          # Top findings by relevance
+          top = sorted(items, key=lambda x: x.get('points', x.get('stars', 0)), reverse=True)[:30]
+          print(json.dumps(top))
+          ")
+          echo "findings<<MARKET_EOF" >> "$GITHUB_OUTPUT"
+          echo "$SUMMARY" >> "$GITHUB_OUTPUT"
+          echo "MARKET_EOF" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: market-findings
+          path: /tmp/market-findings.json
+          retention-days: 7
+
+  # ─── Job 2: User Signals ─────────────────────────────────────────────────────
+  user-signals:
+    if: >-
+      github.event_name == 'schedule' ||
+      inputs.job == 'all' ||
+      inputs.job == 'user-signals'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      findings: ${{ steps.research.outputs.findings }}
+    steps:
+      - name: "👥 Search user feedback, pain points & reviews"
+        id: research
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          FINDINGS="[]"
+
+          # ── Reddit ──
+          REDDIT_QUERIES=(
+            "transcription+app+review"
+            "meeting+notes+tool+recommendation"
+            "speech+to+text+accuracy"
+            "audio+transcription+frustrated+OR+problem+OR+issue"
+            "otter+OR+fireflies+OR+deepgram+alternative"
+            "transcription+API+developer"
+          )
+
+          for q in "${REDDIT_QUERIES[@]}"; do
+            echo "🔍 Reddit: $q"
+            REDDIT=$(curl -sf --max-time 10 \
+              -H "User-Agent: CreativeWareResearchBot/1.0" \
+              "https://www.reddit.com/search.json?q=${q}&sort=new&limit=5&t=month" || echo '{"data":{"children":[]}}')
+            ITEMS=$(echo "$REDDIT" | python3 -c "
+          import json, sys
+          try:
+              d = json.load(sys.stdin)
+              items = []
+              for post in d.get('data', {}).get('children', []):
+                  p = post.get('data', {})
+                  if p.get('score', 0) >= 1:
+                      items.append({
+                          'source': 'reddit',
+                          'query': '${q}'.replace('+', ' '),
+                          'subreddit': p.get('subreddit', ''),
+                          'title': p.get('title', '')[:200],
+                          'url': 'https://reddit.com' + p.get('permalink', ''),
+                          'score': p.get('score', 0),
+                          'comments': p.get('num_comments', 0),
+                          'selftext': (p.get('selftext', '') or '')[:300],
+                          'date': p.get('created_utc', 0)
+                      })
+              print(json.dumps(items))
+          except: print('[]')
+          " 2>/dev/null || echo "[]")
+            FINDINGS=$(echo "$FINDINGS" "$ITEMS" | python3 -c "
+          import json, sys
+          parts = sys.stdin.read().strip().split('\n')
+          merged = []
+          for p in parts:
+              try: merged.extend(json.loads(p))
+              except: pass
+          print(json.dumps(merged))
+          ")
+            sleep 2  # Reddit rate limits
+          done
+
+          # ── HackerNews Ask/Show/Complaints ──
+          HN_QUERIES=("ask hn transcription" "ask hn meeting notes" "show hn audio" "transcription tool review")
+          for q in "${HN_QUERIES[@]}"; do
+            echo "🔍 HackerNews: $q"
+            HN=$(curl -sf --max-time 10 \
+              "https://hn.algolia.com/api/v1/search?query=$(echo "$q" | sed 's/ /+/g')&hitsPerPage=5" || echo '{"hits":[]}')
+            ITEMS=$(echo "$HN" | python3 -c "
+          import json, sys
+          try:
+              d = json.load(sys.stdin)
+              items = []
+              for h in d.get('hits', []):
+                  items.append({
+                      'source': 'hackernews_user',
+                      'query': '$q',
+                      'title': h.get('title', '') or h.get('story_title', ''),
+                      'url': h.get('url', '') or f\"https://news.ycombinator.com/item?id={h.get('objectID','')}\",
+                      'points': h.get('points', 0),
+                      'comments': h.get('num_comments', 0),
+                      'date': h.get('created_at', '')
+                  })
+              print(json.dumps(items))
+          except: print('[]')
+          " 2>/dev/null || echo "[]")
+            FINDINGS=$(echo "$FINDINGS" "$ITEMS" | python3 -c "
+          import json, sys
+          parts = sys.stdin.read().strip().split('\n')
+          merged = []
+          for p in parts:
+              try: merged.extend(json.loads(p))
+              except: pass
+          print(json.dumps(merged))
+          ")
+            sleep 1
+          done
+
+          # Deduplicate
+          FINDINGS=$(echo "$FINDINGS" | python3 -c "
+          import json, sys
+          items = json.load(sys.stdin)
+          seen = set()
+          unique = []
+          for item in items:
+              key = item.get('title', '').lower().strip()
+              if key and key not in seen:
+                  seen.add(key)
+                  unique.append(item)
+          print(json.dumps(unique))
+          ")
+
+          COUNT=$(echo "$FINDINGS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")
+          echo "👥 User signals: $COUNT unique findings"
+
+          echo "$FINDINGS" > /tmp/user-findings.json
+
+          SUMMARY=$(echo "$FINDINGS" | python3 -c "
+          import json, sys
+          items = json.load(sys.stdin)
+          top = sorted(items, key=lambda x: x.get('score', x.get('points', 0)), reverse=True)[:25]
+          print(json.dumps(top))
+          ")
+          echo "findings<<USER_EOF" >> "$GITHUB_OUTPUT"
+          echo "$SUMMARY" >> "$GITHUB_OUTPUT"
+          echo "USER_EOF" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: user-findings
+          path: /tmp/user-findings.json
+          retention-days: 7
+
+  # ─── Job 3: Competitor Watch ─────────────────────────────────────────────────
+  competitor-watch:
+    if: >-
+      github.event_name == 'schedule' ||
+      inputs.job == 'all' ||
+      inputs.job == 'competitor-watch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      findings: ${{ steps.research.outputs.findings }}
+    steps:
+      - name: "🎯 Track competitor news & activity"
+        id: research
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          COMPETITORS=(
+            "Deepgram"
+            "AssemblyAI"
+            "Otter.ai"
+            "Fireflies.ai"
+            "Rev+AI+transcription"
+            "Descript+audio"
+            "Gong+revenue+intelligence"
+            "Whisper+OpenAI"
+            "Gladia+AI"
+          )
+
+          FINDINGS="[]"
+
+          # ── Google News per competitor ──
+          for comp in "${COMPETITORS[@]}"; do
+            echo "🔍 Competitor news: $comp"
+            XML=$(curl -sf --max-time 10 \
+              "https://news.google.com/rss/search?q=${comp}+AI&hl=en-US&gl=US&ceid=US:en" || echo "")
+            if [ -n "$XML" ]; then
+              ITEMS=$(echo "$XML" | python3 -c "
+          import xml.etree.ElementTree as ET, json, sys
+          try:
+              root = ET.parse(sys.stdin).getroot()
+              items = []
+              for item in list(root.findall('.//item'))[:3]:
+                  title = item.find('title')
+                  link = item.find('link')
+                  pub = item.find('pubDate')
+                  source_el = item.find('source')
+                  if title is not None:
+                      items.append({
+                          'source': 'competitor_news',
+                          'competitor': '${comp}'.replace('+', ' '),
+                          'title': title.text or '',
+                          'url': (link.text or '') if link is not None else '',
+                          'date': (pub.text or '') if pub is not None else '',
+                          'publisher': (source_el.text or '') if source_el is not None else ''
+                      })
+              print(json.dumps(items))
+          except: print('[]')
+          " 2>/dev/null || echo "[]")
+              FINDINGS=$(echo "$FINDINGS" "$ITEMS" | python3 -c "
+          import json, sys
+          parts = sys.stdin.read().strip().split('\n')
+          merged = []
+          for p in parts:
+              try: merged.extend(json.loads(p))
+              except: pass
+          print(json.dumps(merged))
+          ")
+            fi
+            sleep 1
+          done
+
+          # ── GitHub: OSS competitor repos ──
+          OSS_REPOS=(
+            "openai/whisper"
+            "m-bain/whisperX"
+            "ggerganov/whisper.cpp"
+            "Vaibhavs10/insanely-fast-whisper"
+            "FunAudioLLM/SenseVoice"
+          )
+
+          for repo in "${OSS_REPOS[@]}"; do
+            echo "🔍 GitHub: $repo"
+            REPO_DATA=$(curl -sf --max-time 10 \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$repo" || echo '{}')
+            ITEM=$(echo "$REPO_DATA" | python3 -c "
+          import json, sys
+          try:
+              r = json.load(sys.stdin)
+              if r.get('full_name'):
+                  print(json.dumps({
+                      'source': 'github_oss',
+                      'competitor': r.get('full_name', ''),
+                      'title': r.get('full_name', ''),
+                      'url': r.get('html_url', ''),
+                      'stars': r.get('stargazers_count', 0),
+                      'forks': r.get('forks_count', 0),
+                      'description': (r.get('description', '') or '')[:200],
+                      'updated': r.get('pushed_at', ''),
+                      'open_issues': r.get('open_issues_count', 0)
+                  }))
+              else: print('null')
+          except: print('null')
+          " 2>/dev/null || echo "null")
+            if [ "$ITEM" != "null" ]; then
+              FINDINGS=$(echo "$FINDINGS" "[$ITEM]" | python3 -c "
+          import json, sys
+          parts = sys.stdin.read().strip().split('\n')
+          merged = []
+          for p in parts:
+              try: merged.extend(json.loads(p))
+              except: pass
+          print(json.dumps(merged))
+          ")
+            fi
+            sleep 0.5
+          done
+
+          # ── ProductHunt ──
+          echo "🔍 ProductHunt: AI launches"
+          PH=$(curl -sf --max-time 10 \
+            "https://www.producthunt.com/feed?category=artificial-intelligence" || echo "")
+          if [ -n "$PH" ]; then
+            PH_ITEMS=$(echo "$PH" | python3 -c "
+          import xml.etree.ElementTree as ET, json, sys
+          try:
+              root = ET.parse(sys.stdin).getroot()
+              ns = {'a': 'http://www.w3.org/2005/Atom'}
+              items = []
+              for entry in list(root.findall('.//a:entry', ns))[:10]:
+                  title = entry.find('a:title', ns)
+                  link = entry.find('a:link', ns)
+                  summary = entry.find('a:summary', ns) or entry.find('a:content', ns)
+                  published = entry.find('a:published', ns) or entry.find('a:updated', ns)
+                  if title is not None:
+                      t = (title.text or '').lower()
+                      if any(kw in t for kw in ['audio', 'voice', 'transcript', 'speech', 'meeting', 'record', 'note', 'dictation', 'caption', 'subtitle', 'podcast', 'ai']):
+                          items.append({
+                              'source': 'producthunt',
+                              'title': title.text or '',
+                              'url': link.get('href', '') if link is not None else '',
+                              'summary': ((summary.text or '') if summary is not None else '')[:200],
+                              'date': (published.text or '') if published is not None else ''
+                          })
+              print(json.dumps(items))
+          except: print('[]')
+          " 2>/dev/null || echo "[]")
+            FINDINGS=$(echo "$FINDINGS" "$PH_ITEMS" | python3 -c "
+          import json, sys
+          parts = sys.stdin.read().strip().split('\n')
+          merged = []
+          for p in parts:
+              try: merged.extend(json.loads(p))
+              except: pass
+          print(json.dumps(merged))
+          ")
+          fi
+
+          # Deduplicate
+          FINDINGS=$(echo "$FINDINGS" | python3 -c "
+          import json, sys
+          items = json.load(sys.stdin)
+          seen = set()
+          unique = []
+          for item in items:
+              key = item.get('title', '').lower().strip()
+              if key and key not in seen:
+                  seen.add(key)
+                  unique.append(item)
+          print(json.dumps(unique))
+          ")
+
+          COUNT=$(echo "$FINDINGS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")
+          echo "🎯 Competitor watch: $COUNT unique findings"
+
+          echo "$FINDINGS" > /tmp/competitor-findings.json
+
+          SUMMARY=$(echo "$FINDINGS" | python3 -c "
+          import json, sys
+          items = json.load(sys.stdin)
+          print(json.dumps(items[:30]))
+          ")
+          echo "findings<<COMP_EOF" >> "$GITHUB_OUTPUT"
+          echo "$SUMMARY" >> "$GITHUB_OUTPUT"
+          echo "COMP_EOF" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: competitor-findings
+          path: /tmp/competitor-findings.json
+          retention-days: 7
+
+  # ─── Job 4: Synthesize Intelligence Brief ────────────────────────────────────
+  synthesize:
+    needs: [market-intelligence, user-signals, competitor-watch]
+    if: always() && !cancelled()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.AGENT_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: "📝 Synthesize research into intelligence brief"
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.AGENT_PAT || secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const today = new Date().toISOString().split('T')[0];
+            const hour = new Date().getUTCHours() < 12 ? 'AM' : 'PM';
+
+            // Parse findings from job outputs
+            let market = [], users = [], competitors = [];
+            try { market = JSON.parse(`${{ needs.market-intelligence.outputs.findings || '[]' }}`); } catch {}
+            try { users = JSON.parse(`${{ needs.user-signals.outputs.findings || '[]' }}`); } catch {}
+            try { competitors = JSON.parse(`${{ needs.competitor-watch.outputs.findings || '[]' }}`); } catch {}
+
+            const totalFindings = market.length + users.length + competitors.length;
+            console.log(`📊 Synthesizing ${totalFindings} findings (market: ${market.length}, users: ${users.length}, competitors: ${competitors.length})`);
+
+            if (totalFindings === 0) {
+              console.log('⚠️ No findings to synthesize — all research jobs may have failed');
+              return;
+            }
+
+            // ── Build intelligence brief ──
+            const sections = [];
+            sections.push(`# 🔬 Web Research Intelligence Brief — ${today} ${hour}`);
+            sections.push('');
+            sections.push(`**Generated:** ${new Date().toISOString()}`);
+            sections.push(`**Total Signals:** ${totalFindings}`);
+            sections.push(`**Sources:** Google News (${market.filter(m => m.source === 'google_news').length}), HackerNews (${market.filter(m => m.source === 'hackernews').length + users.filter(u => u.source === 'hackernews_user').length}), Reddit (${users.filter(u => u.source === 'reddit').length}), GitHub (${market.filter(m => m.source === 'github').length + competitors.filter(c => c.source === 'github_oss').length}), ProductHunt (${competitors.filter(c => c.source === 'producthunt').length}), Competitor News (${competitors.filter(c => c.source === 'competitor_news').length})`);
+            sections.push('');
+            sections.push('---');
+            sections.push('');
+
+            // Market signals
+            sections.push('## 📰 Market Signals');
+            sections.push('');
+            const newsItems = market.filter(m => m.source === 'google_news');
+            if (newsItems.length > 0) {
+              sections.push('### Industry News');
+              sections.push('');
+              const seen = new Set();
+              for (const item of newsItems.slice(0, 15)) {
+                const key = item.title.toLowerCase();
+                if (seen.has(key)) continue;
+                seen.add(key);
+                const pub = item.publisher ? ` — *${item.publisher}*` : '';
+                sections.push(`- [${item.title}](${item.url})${pub}`);
+              }
+              sections.push('');
+            }
+
+            const hnItems = market.filter(m => m.source === 'hackernews').sort((a, b) => (b.points || 0) - (a.points || 0));
+            if (hnItems.length > 0) {
+              sections.push('### Developer Buzz (HackerNews)');
+              sections.push('');
+              for (const item of hnItems.slice(0, 10)) {
+                sections.push(`- [${item.title}](${item.url}) — ${item.points || 0} pts, ${item.comments || 0} comments`);
+              }
+              sections.push('');
+            }
+
+            const ghItems = market.filter(m => m.source === 'github').sort((a, b) => (b.stars || 0) - (a.stars || 0));
+            if (ghItems.length > 0) {
+              sections.push('### Trending OSS Repos');
+              sections.push('');
+              sections.push('| Repo | Stars | Language | Description |');
+              sections.push('|------|-------|----------|-------------|');
+              for (const item of ghItems.slice(0, 10)) {
+                sections.push(`| [${item.title}](${item.url}) | ⭐${item.stars} | ${item.language || '—'} | ${(item.description || '').replace(/\|/g, '\\|')} |`);
+              }
+              sections.push('');
+            }
+
+            // User signals
+            sections.push('## 👥 User Signals');
+            sections.push('');
+            const redditItems = users.filter(u => u.source === 'reddit').sort((a, b) => (b.score || 0) - (a.score || 0));
+            if (redditItems.length > 0) {
+              sections.push('### User Pain Points & Reviews (Reddit)');
+              sections.push('');
+              for (const item of redditItems.slice(0, 12)) {
+                const sub = item.subreddit ? `r/${item.subreddit}` : 'reddit';
+                const excerpt = item.selftext ? `\n  > ${item.selftext.slice(0, 150).replace(/\n/g, ' ')}…` : '';
+                sections.push(`- **[${item.title}](${item.url})** (${sub}, ${item.score} pts, ${item.comments} comments)${excerpt}`);
+                sections.push('');
+              }
+            }
+
+            const hnUserItems = users.filter(u => u.source === 'hackernews_user').sort((a, b) => (b.points || 0) - (a.points || 0));
+            if (hnUserItems.length > 0) {
+              sections.push('### User Discussions (HackerNews)');
+              sections.push('');
+              for (const item of hnUserItems.slice(0, 8)) {
+                sections.push(`- [${item.title}](${item.url}) — ${item.points || 0} pts`);
+              }
+              sections.push('');
+            }
+
+            // Competitor activity
+            sections.push('## 🎯 Competitor Activity');
+            sections.push('');
+            const compNews = competitors.filter(c => c.source === 'competitor_news');
+            if (compNews.length > 0) {
+              // Group by competitor
+              const byComp = {};
+              for (const item of compNews) {
+                const comp = item.competitor || 'Unknown';
+                if (!byComp[comp]) byComp[comp] = [];
+                byComp[comp].push(item);
+              }
+              for (const [comp, items] of Object.entries(byComp)) {
+                sections.push(`### ${comp}`);
+                for (const item of items.slice(0, 3)) {
+                  const pub = item.publisher ? ` — *${item.publisher}*` : '';
+                  sections.push(`- [${item.title}](${item.url})${pub}`);
+                }
+                sections.push('');
+              }
+            }
+
+            const ossItems = competitors.filter(c => c.source === 'github_oss');
+            if (ossItems.length > 0) {
+              sections.push('### OSS Competitor Repos');
+              sections.push('');
+              sections.push('| Repo | Stars | Forks | Last Updated |');
+              sections.push('|------|-------|-------|-------------|');
+              for (const item of ossItems) {
+                const updated = item.updated ? item.updated.split('T')[0] : '—';
+                sections.push(`| [${item.title}](${item.url}) | ⭐${item.stars} | 🍴${item.forks} | ${updated} |`);
+              }
+              sections.push('');
+            }
+
+            const phItems = competitors.filter(c => c.source === 'producthunt');
+            if (phItems.length > 0) {
+              sections.push('### New ProductHunt Launches');
+              sections.push('');
+              for (const item of phItems.slice(0, 5)) {
+                const summary = item.summary ? `: ${item.summary}` : '';
+                sections.push(`- [${item.title}](${item.url})${summary}`);
+              }
+              sections.push('');
+            }
+
+            sections.push('---');
+            sections.push('');
+            sections.push('## 🎯 Actionable Takeaways');
+            sections.push('');
+            sections.push('> These are auto-identified signals that may warrant further investigation.');
+            sections.push('');
+
+            // Identify high-signal items
+            const highSignal = [];
+
+            // News about funding, acquisitions, launches
+            for (const item of newsItems) {
+              const t = item.title.toLowerCase();
+              if (t.match(/\b(raises?|funding|series [a-d]|million|acquire|launch|pricing|free)\b/)) {
+                highSignal.push({ type: 'market_move', ...item });
+              }
+            }
+
+            // High-engagement Reddit pain points
+            for (const item of redditItems) {
+              if ((item.score || 0) >= 10 || (item.comments || 0) >= 5) {
+                highSignal.push({ type: 'user_pain', ...item });
+              }
+            }
+
+            // Trending HN with high points
+            for (const item of hnItems) {
+              if ((item.points || 0) >= 50) {
+                highSignal.push({ type: 'trending', ...item });
+              }
+            }
+
+            if (highSignal.length > 0) {
+              for (const item of highSignal.slice(0, 8)) {
+                const emoji = item.type === 'market_move' ? '💰' : item.type === 'user_pain' ? '😤' : '🔥';
+                sections.push(`- ${emoji} **${item.type.replace('_', ' ')}:** [${item.title}](${item.url})`);
+              }
+            } else {
+              sections.push('- No high-priority signals detected in this cycle. Next scan in 12 hours.');
+            }
+
+            sections.push('');
+            sections.push('---');
+            sections.push(`*Generated by Web Research Agent — CreativeWare HQ*`);
+
+            const briefContent = sections.join('\n');
+
+            // ── Write brief to repo ──
+            const briefPath = `strategy/research/${today}.md`;
+
+            // Check if brief already exists (AM run may exist, append PM run)
+            let existingContent = '';
+            try {
+              const { data: existing } = await github.rest.repos.getContent({
+                owner, repo, path: briefPath,
+              });
+              existingContent = Buffer.from(existing.content, 'base64').toString('utf-8');
+            } catch {} // File doesn't exist yet
+
+            let finalContent;
+            if (existingContent && hour === 'PM') {
+              finalContent = existingContent + '\n\n---\n\n' + briefContent;
+            } else {
+              finalContent = briefContent;
+            }
+
+            // Commit the brief
+            const { data: ref } = await github.rest.git.getRef({ owner, repo, ref: 'heads/main' });
+            const { data: baseCommit } = await github.rest.git.getCommit({ owner, repo, commit_sha: ref.object.sha });
+
+            const { data: blob } = await github.rest.git.createBlob({
+              owner, repo, content: finalContent, encoding: 'utf-8',
+            });
+
+            const { data: tree } = await github.rest.git.createTree({
+              owner, repo,
+              base_tree: baseCommit.tree.sha,
+              tree: [{ path: briefPath, mode: '100644', type: 'blob', sha: blob.sha }],
+            });
+
+            const { data: newCommit } = await github.rest.git.createCommit({
+              owner, repo,
+              message: `📊 Web Research Brief — ${today} ${hour}\n\n${totalFindings} signals from Google News, HackerNews, Reddit, GitHub, ProductHunt`,
+              tree: tree.sha,
+              parents: [ref.object.sha],
+            });
+
+            await github.rest.git.updateRef({
+              owner, repo, ref: 'heads/main',
+              sha: newCommit.sha,
+            });
+
+            console.log(`✅ Committed intelligence brief: ${briefPath}`);
+
+            // ── Create issues for high-priority signals ──
+            if (highSignal.length > 0) {
+              // Check for existing research issues today
+              const { data: existingIssues } = await github.rest.issues.listForRepo({
+                owner, repo, state: 'all',
+                labels: 'web-research',
+                since: new Date(Date.now() - 24 * 3600000).toISOString(),
+                per_page: 50,
+              });
+              const existingTitles = new Set(existingIssues.map(i => i.title.toLowerCase()));
+
+              let issuesCreated = 0;
+              for (const signal of highSignal.slice(0, 3)) {
+                const issueTitle = `[RESEARCH] ${signal.title.slice(0, 100)}`;
+                if (existingTitles.has(issueTitle.toLowerCase())) continue;
+
+                const emoji = signal.type === 'market_move' ? '💰' : signal.type === 'user_pain' ? '😤' : '🔥';
+                const issueBody = [
+                  `## ${emoji} ${signal.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`,
+                  '',
+                  `**Source:** ${signal.source || 'web'}`,
+                  `**URL:** ${signal.url || 'N/A'}`,
+                  signal.publisher ? `**Publisher:** ${signal.publisher}` : '',
+                  signal.score ? `**Score:** ${signal.score} points` : '',
+                  signal.points ? `**Points:** ${signal.points}` : '',
+                  signal.selftext ? `\n> ${signal.selftext.slice(0, 300)}` : '',
+                  '',
+                  `### Why This Matters`,
+                  '',
+                  `This signal was auto-detected by the Web Research Agent as potentially relevant to CreativeWare's strategy.`,
+                  '',
+                  `### Recommended Action`,
+                  '',
+                  `- [ ] Review the source material`,
+                  `- [ ] Assess relevance to current opportunities`,
+                  `- [ ] Update relevant opportunity briefs in \`strategy/opportunities/\``,
+                  '',
+                  `**Brief:** \`${briefPath}\``,
+                  '',
+                  '---',
+                  '*Generated by Web Research Agent — CreativeWare HQ*',
+                ].filter(Boolean).join('\n');
+
+                try {
+                  const labels = ['web-research', 'opportunity'];
+                  if (signal.type === 'market_move') labels.push('market-signal');
+                  if (signal.type === 'user_pain') labels.push('user-feedback');
+
+                  await github.rest.issues.create({
+                    owner, repo, title: issueTitle, body: issueBody,
+                    labels,
+                  });
+                  issuesCreated++;
+                  console.log(`📌 Created issue: ${issueTitle}`);
+                } catch (e) {
+                  console.error(`Failed to create issue: ${e.message}`);
+                }
+              }
+              console.log(`📌 Created ${issuesCreated} research issues`);
+            }
