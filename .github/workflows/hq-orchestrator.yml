@@ -8,7 +8,7 @@ name: "🎯 HQ Orchestrator — Cross-Product Coordinator"
 
 on:
   schedule:
-    - cron: "0 */4 * * *"  # Every 4 hours
+    - cron: "0 */8 * * *"  # Every 8 hours (reduced from 4h)
   workflow_dispatch:
     inputs:
       action:

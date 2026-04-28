@@ -7,7 +7,7 @@ name: "🎯 Company Reconciler — Cross-Product"
 
 on:
   schedule:
-    - cron: "0 */2 * * *"
+    - cron: "0 */6 * * *"  # Every 6 hours (reduced from 2h)
   workflow_dispatch:
     inputs:
       action:
@@ -24,9 +24,14 @@ permissions:
   issues: write
   pull-requests: read
 
+concurrency:
+  group: company-reconciler
+  cancel-in-progress: true
+
 jobs:
   reconcile:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -132,6 +137,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' &&
        (inputs.action == 'security-audit' || inputs.action == 'full-cycle'))
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 

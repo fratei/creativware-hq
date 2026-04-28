@@ -9,7 +9,7 @@ name: "🏢 CreativeWare Agent Fleet — C-Suite Operations"
 
 on:
   schedule:
-    - cron: "15 */2 * * *"
+    - cron: "15 */6 * * *"  # Every 6 hours (reduced from 2h)
   workflow_dispatch:
     inputs:
       agent:
@@ -29,6 +29,10 @@ permissions:
   contents: write
   issues: write
 
+concurrency:
+  group: agent-fleet
+  cancel-in-progress: true
+
 jobs:
   cpo-opportunities:
     if: >-
@@ -37,6 +41,7 @@ jobs:
       inputs.agent == 'all' ||
       inputs.agent == 'cpo-opportunities'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -149,6 +154,7 @@ jobs:
       inputs.agent == 'cmo-market-analysis' ||
       inputs.agent == 'all'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: "📊 CMO Agent — Trigger Market Analysis"
         uses: actions/github-script@v7
@@ -170,6 +176,7 @@ jobs:
       inputs.agent == 'all' ||
       inputs.agent == 'cfo-financial-review'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -215,6 +222,7 @@ jobs:
       inputs.agent == 'all' ||
       inputs.agent == 'cto-tech-review'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
