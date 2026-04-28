@@ -47,8 +47,6 @@ jobs:
       inputs.job == 'market-intelligence'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    outputs:
-      findings: ${{ steps.research.outputs.findings }}
     steps:
       - name: "📰 Search market news, funding & trends"
         id: research
@@ -195,20 +193,10 @@ jobs:
           COUNT=$(echo "$FINDINGS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")
           echo "📊 Market intelligence: $COUNT unique findings"
 
-          # Save as artifact
           echo "$FINDINGS" > /tmp/market-findings.json
 
-          # Output summary for synthesis job (truncated to fit GitHub outputs)
-          SUMMARY=$(echo "$FINDINGS" | python3 -c "
-          import json, sys
-          items = json.load(sys.stdin)
-          # Top findings by relevance
-          top = sorted(items, key=lambda x: x.get('points', x.get('stars', 0)), reverse=True)[:30]
-          print(json.dumps(top))
-          ")
-          echo "findings<<MARKET_EOF" >> "$GITHUB_OUTPUT"
-          echo "$SUMMARY" >> "$GITHUB_OUTPUT"
-          echo "MARKET_EOF" >> "$GITHUB_OUTPUT"
+          COUNT=$(echo "$FINDINGS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")
+          echo "📊 Market intelligence: $COUNT unique findings"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -224,8 +212,6 @@ jobs:
       inputs.job == 'user-signals'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    outputs:
-      findings: ${{ steps.research.outputs.findings }}
     steps:
       - name: "👥 Search user feedback, pain points & reviews"
         id: research
@@ -339,15 +325,8 @@ jobs:
 
           echo "$FINDINGS" > /tmp/user-findings.json
 
-          SUMMARY=$(echo "$FINDINGS" | python3 -c "
-          import json, sys
-          items = json.load(sys.stdin)
-          top = sorted(items, key=lambda x: x.get('score', x.get('points', 0)), reverse=True)[:25]
-          print(json.dumps(top))
-          ")
-          echo "findings<<USER_EOF" >> "$GITHUB_OUTPUT"
-          echo "$SUMMARY" >> "$GITHUB_OUTPUT"
-          echo "USER_EOF" >> "$GITHUB_OUTPUT"
+          COUNT=$(echo "$FINDINGS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")
+          echo "👥 User signals: $COUNT unique findings"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -363,8 +342,6 @@ jobs:
       inputs.job == 'competitor-watch'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    outputs:
-      findings: ${{ steps.research.outputs.findings }}
     steps:
       - name: "🎯 Track competitor news & activity"
         id: research
@@ -533,14 +510,8 @@ jobs:
 
           echo "$FINDINGS" > /tmp/competitor-findings.json
 
-          SUMMARY=$(echo "$FINDINGS" | python3 -c "
-          import json, sys
-          items = json.load(sys.stdin)
-          print(json.dumps(items[:30]))
-          ")
-          echo "findings<<COMP_EOF" >> "$GITHUB_OUTPUT"
-          echo "$SUMMARY" >> "$GITHUB_OUTPUT"
-          echo "COMP_EOF" >> "$GITHUB_OUTPUT"
+          COUNT=$(echo "$FINDINGS" | python3 -c "import json,sys; print(len(json.load(sys.stdin)))")
+          echo "🎯 Competitor watch: $COUNT unique findings"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -559,6 +530,11 @@ jobs:
         with:
           token: ${{ secrets.AGENT_PAT || secrets.GITHUB_TOKEN }}
 
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/research-artifacts
+          merge-multiple: true
+
       - name: "📝 Synthesize research into intelligence brief"
         uses: actions/github-script@v7
         with:
@@ -571,11 +547,21 @@ jobs:
             const today = new Date().toISOString().split('T')[0];
             const hour = new Date().getUTCHours() < 12 ? 'AM' : 'PM';
 
-            // Parse findings from job outputs
+            // Load findings from downloaded artifacts
             let market = [], users = [], competitors = [];
-            try { market = JSON.parse(`${{ needs.market-intelligence.outputs.findings || '[]' }}`); } catch {}
-            try { users = JSON.parse(`${{ needs.user-signals.outputs.findings || '[]' }}`); } catch {}
-            try { competitors = JSON.parse(`${{ needs.competitor-watch.outputs.findings || '[]' }}`); } catch {}
+            const artifactDir = '/tmp/research-artifacts';
+            try {
+              const marketFile = path.join(artifactDir, 'market-findings.json');
+              if (fs.existsSync(marketFile)) market = JSON.parse(fs.readFileSync(marketFile, 'utf-8'));
+            } catch (e) { console.log(`⚠️ Failed to load market findings: ${e.message}`); }
+            try {
+              const userFile = path.join(artifactDir, 'user-findings.json');
+              if (fs.existsSync(userFile)) users = JSON.parse(fs.readFileSync(userFile, 'utf-8'));
+            } catch (e) { console.log(`⚠️ Failed to load user findings: ${e.message}`); }
+            try {
+              const compFile = path.join(artifactDir, 'competitor-findings.json');
+              if (fs.existsSync(compFile)) competitors = JSON.parse(fs.readFileSync(compFile, 'utf-8'));
+            } catch (e) { console.log(`⚠️ Failed to load competitor findings: ${e.message}`); }
 
             const totalFindings = market.length + users.length + competitors.length;
             console.log(`📊 Synthesizing ${totalFindings} findings (market: ${market.length}, users: ${users.length}, competitors: ${competitors.length})`);
