@@ -34,6 +34,7 @@ All gaps are scored on four dimensions (1–5 each). Threshold for opportunity b
 | Media & Podcast Pipeline | 3 | 5 | 4 | 3 | **15** | ✅ media-podcast-pipeline.md |
 | HR & Recruiting Intelligence | 3 | 4 | 3 | 4 | **14** | ✅ hr-recruiting-intelligence.md |
 | Contact Center & Support QA | 4 | 4 | 3 | 3 | **14** | ✅ contact-center-qa.md |
+| AI Voice Receptionist (SMB) | 4 | 3 | 2 | 3 | **12** | ✅ ai-voice-receptionist-smb.md |
 | Medical Dictation / Clinical | 4 | 3 | 2 | 4 | **13** | ❌ Below threshold |
 | Legal Deposition | 3 | 3 | 2 | 4 | **12** | ❌ Below threshold |
 
@@ -83,6 +84,7 @@ All gaps are scored on four dimensions (1–5 each). Threshold for opportunity b
 
 | Segment | Score | Reason for Exclusion |
 |---------|-------|----------------------|
+| AI Voice Receptionist (SMB) | 12 | Telephony integration and TTS partnership add complexity; Beside ($32M Series A, Apr 2026) is a direct competitor with a head start; re-evaluate in Q3 2026 if competitor traction stalls or ElevenLabs partnership becomes viable |
 | Medical Dictation / Clinical | 13 | Time to revenue penalised by HIPAA certification (12–18 months); requires clinical vocabulary fine-tuning beyond current infrastructure |
 | Legal Deposition | 12 | Niche market; long enterprise sales cycles; chain-of-custody compliance adds significant engineering scope |
 
@@ -94,3 +96,4 @@ All gaps are scored on four dimensions (1–5 each). Threshold for opportunity b
 2. Approved opportunities to be linked to implementation issues in `fratei/audiotext-app`
 3. Medical Dictation and Legal Deposition to be re-evaluated once HIPAA compliance infrastructure is in place (planned for H2 2026)
 4. **Monitor ElevenLabs** for any STT or transcription product launches following their $500M Series D (Apr 2026). If they enter the transcription market, re-score competitive intensity for Media/Podcast and Developer API segments.
+5. **Monitor Beside** (AI receptionist, $32M Series A, Apr 2026) and the broader SMB voice AI segment. If Beside gains significant traction or raises again, consider a fast-follow entry leveraging AudioText's STT infrastructure + an ElevenLabs TTS partnership. Re-score AI Voice Receptionist (SMB) in Q3 2026.
