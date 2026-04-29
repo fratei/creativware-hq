@@ -159,7 +159,7 @@ The healthcare, legal, HR, and enterprise segments — collectively the highest-
 
 ### Implication 3: Voice Synthesis Convergence — ElevenLabs' $500M Signal
 
-**Signal (2026-04-28):** ElevenLabs raised **$500M Series D at an $11B valuation** (WSJ). In the same period, Deepgram raised $130M Series C and multiple smaller voice AI startups secured $6M–$32M rounds. This is the single largest fundraise in the voice AI space to date and is a clear sign that investors view TTS/voice synthesis as a multi-billion-dollar standalone market.
+**Signal (2026-04-28):** ElevenLabs raised **$500M Series D at an $11B valuation** (WSJ; The SaaS News). In the same period, Deepgram raised $130M Series C and multiple smaller voice AI startups secured $6M–$32M rounds. This is the single largest fundraise in the voice AI space to date and is a clear sign that investors view TTS/voice synthesis as a multi-billion-dollar standalone market.
 
 **Why it matters for AudioText:** ElevenLabs is a TTS/voice-synthesis platform — today a complement to AudioText's STT focus, not a direct competitor. However, at $11B and $500M in fresh capital, ElevenLabs has the resources to expand into speech-to-text, transcription workflows, and post-processing intelligence. The funding round accelerates the timeline for full-stack "audio-in, audio-out" voice platforms that blur the STT/TTS boundary.
 
@@ -183,6 +183,19 @@ The healthcare, legal, HR, and enterprise segments — collectively the highest-
 
 **Impact for AudioText:** Increase urgency on Meeting Intelligence module. See updated competitive landscape in `strategy/opportunities/meeting-intelligence.md`.
 
+### Implication 3c: Deepgram's $130M Series C Accelerates Competitive Pressure in Developer API
+
+**Signal (2026-04-28):** Deepgram raised **$130M Series C at a $1.3B valuation** (Reuters / The SaaS News). Deepgram is AudioText's closest direct competitor in the real-time, developer-facing transcription API market.
+
+**Why it matters for AudioText:** Deepgram's current weaknesses — opaque enterprise pricing, limited DX for non-technical buyers, and no post-transcription intelligence layer — have been the primary whitespace AudioText can exploit in the developer segment. A $130M injection gives Deepgram the runway to close those gaps within 12–18 months through dedicated product and engineering investment.
+
+**Implications:**
+- **Short term (12 months):** Deepgram will likely invest in developer experience (better docs, SDKs, competitive pricing tiers) and post-transcription AI features — eroding two of AudioText's primary differentiation vectors. AudioText must execute the Developer API & SDK launch and the Post-Transcription Intelligence layer *before* Deepgram's capital translates into product improvements.
+- **Medium term (12–24 months):** Deepgram may make acquisitions or launch vertical-specific products (meeting intelligence, contact centre QA) that overlap with AudioText's approved opportunity pipeline. Monitor their product announcements closely.
+- **Strategic response:** Accelerate public launch of the Developer API with a generous free tier and exceptional documentation — the window to win developer mindshare ahead of a Deepgram DX overhaul is narrowing. Lean into post-transcription intelligence (summaries, action items, sentiment) and deep workflow integrations as the durable moat that raw transcription APIs cannot easily replicate.
+
+**Impact for AudioText:** Treat the next 6 months as a critical window to ship the Developer API, SDKs, and Post-Transcription Intelligence layer. Delay increases the risk that Deepgram's improved DX closes the differentiation gap before AudioText establishes developer brand recognition.
+
 ### Implication 4: Developer Distribution Is the Fastest Growth Channel
 
 The fastest-growing buyer segment is developers and engineering-led teams. They evaluate tools via free tiers, discover via Hacker News / ProductHunt / Reddit, and convert through quality documentation and SDK experience. The approved Developer API & SDK opportunity is correctly prioritised — but the GTM must emphasise PLG (product-led growth): freemium onboarding, exceptional docs, and community presence. Developers who build on AudioText's API become long-term, high-retention accounts and organic advocates.
@@ -196,10 +209,11 @@ The fastest-growing buyer segment is developers and engineering-led teams. They 
 | Priority | Action | Rationale | Owner | Horizon |
 |----------|--------|-----------|-------|---------|
 | 🥇 1 | Ship Post-Transcription Intelligence layer | Highest retention impact; closes the gap competitors are exploiting | CPO | 4–6 weeks |
-| 🥇 1 | Launch Developer API (public) + SDKs | Fastest-growing segment; PLG flywheel; approved and in-flight | CTO | 4–6 weeks |
+| 🥇 1 | Launch Developer API (public) + SDKs | Fastest-growing segment; PLG flywheel; approved and in-flight — **urgency heightened by Deepgram $130M Series C** | CTO | 4–6 weeks |
+| 🥈 2 | Monitor Deepgram product announcements post-Series C | $130M raise will fund DX/UX improvements and feature expansion; re-score competitive intensity for Developer API segment if Deepgram ships meaningful upgrades within 90 days | CMO / CPO | Ongoing |
 | 🥈 2 | Begin SOC2 Type II preparation | Unlocks enterprise and healthcare ACV; one-time compliance investment | CEO / CTO | 8–12 weeks |
 | 🥈 2 | Publish MCP (Model Context Protocol) connector | Low effort; emerging AI agent distribution channel | CTO | 2–3 weeks |
-| 🥈 2 | Add ElevenLabs / voice synthesis integrations | ElevenLabs $500M raise validates creator demand; positions AudioText as preferred STT layer before TTS platforms build native transcription | CPO / CTO | 4–6 weeks |
+| 🥈 2 | Add ElevenLabs / voice synthesis integrations — see [`voice-synthesis-integration.md`](voice-synthesis-integration.md) | ElevenLabs $500M raise validates creator demand; positions AudioText as preferred STT layer before TTS platforms build native transcription | CPO / CTO | 4–6 weeks |
 | 🥈 2 | Accelerate Meeting Intelligence module | Notta ¥2.3B Series B (Apr 2026) signals whitespace narrowing in AI meeting notes; ship real-time intelligence + CRM integrations to differentiate before Notta's roadmap catches up | CPO / CTO | 6–10 weeks |
 | 🥉 3 | Launch HIPAA-ready tier with BAA | Healthcare segment gate; 5–10x ACV vs. SMB tier | CEO / CMO | 12–16 weeks |
 | 🥉 3 | Target media & podcasting vertical | Large addressable niche; low compliance overhead; strong word-of-mouth | CMO | 6–8 weeks |
