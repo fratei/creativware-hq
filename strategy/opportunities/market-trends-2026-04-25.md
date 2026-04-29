@@ -170,6 +170,19 @@ The healthcare, legal, HR, and enterprise segments — collectively the highest-
 
 **Impact for AudioText:** Add voice synthesis integration to the Media & Podcast Pipeline and Developer API roadmap as a near-term differentiator. Monitor ElevenLabs' product announcements for any STT/transcription feature launches.
 
+### Implication 3b: Meeting Intelligence Space Heating Up — Notta's ¥2.3B Series B
+
+**Signal (2026-04-28):** Notta raised **¥2.3 Billion in a Series B round** (approx. $15M USD, The SaaS News). Notta is an AI-powered meeting notes and async transcription platform competing directly in the same segment as Otter.ai, Fireflies.ai, and AudioText's planned Meeting Intelligence module.
+
+**Why it matters for AudioText:** Notta's Series B demonstrates continued investor conviction in AI meeting notes as a standalone market — validating the segment opportunity. However, it also signals that the Meeting Intelligence whitespace is narrowing as funded competitors accelerate product development. Notta's strengths are async transcription and mobile UX; their weaknesses are limited real-time intelligence and shallow CRM/ATS integrations — the exact gaps AudioText can exploit.
+
+**Implications:**
+- **Short term (opportunity):** Notta's funding validates investor and market demand for AI-powered meeting notes; AudioText's real-time WebSocket transcription and GPT-4o intelligence layer are differentiated capabilities Notta currently lacks.
+- **Medium term (threat):** A well-capitalised Notta will invest in real-time features and integrations that erode today's whitespace. The window to establish differentiation is 6–12 months.
+- **Strategic response:** Accelerate the Meeting Intelligence module launch, prioritising real-time action item extraction and CRM/Slack/Notion integrations as the primary differentiation vectors against Notta.
+
+**Impact for AudioText:** Increase urgency on Meeting Intelligence module. See updated competitive landscape in `strategy/opportunities/meeting-intelligence.md`.
+
 ### Implication 4: Developer Distribution Is the Fastest Growth Channel
 
 The fastest-growing buyer segment is developers and engineering-led teams. They evaluate tools via free tiers, discover via Hacker News / ProductHunt / Reddit, and convert through quality documentation and SDK experience. The approved Developer API & SDK opportunity is correctly prioritised — but the GTM must emphasise PLG (product-led growth): freemium onboarding, exceptional docs, and community presence. Developers who build on AudioText's API become long-term, high-retention accounts and organic advocates.
@@ -187,6 +200,7 @@ The fastest-growing buyer segment is developers and engineering-led teams. They 
 | 🥈 2 | Begin SOC2 Type II preparation | Unlocks enterprise and healthcare ACV; one-time compliance investment | CEO / CTO | 8–12 weeks |
 | 🥈 2 | Publish MCP (Model Context Protocol) connector | Low effort; emerging AI agent distribution channel | CTO | 2–3 weeks |
 | 🥈 2 | Add ElevenLabs / voice synthesis integrations | ElevenLabs $500M raise validates creator demand; positions AudioText as preferred STT layer before TTS platforms build native transcription | CPO / CTO | 4–6 weeks |
+| 🥈 2 | Accelerate Meeting Intelligence module | Notta ¥2.3B Series B (Apr 2026) signals whitespace narrowing in AI meeting notes; ship real-time intelligence + CRM integrations to differentiate before Notta's roadmap catches up | CPO / CTO | 6–10 weeks |
 | 🥉 3 | Launch HIPAA-ready tier with BAA | Healthcare segment gate; 5–10x ACV vs. SMB tier | CEO / CMO | 12–16 weeks |
 | 🥉 3 | Target media & podcasting vertical | Large addressable niche; low compliance overhead; strong word-of-mouth | CMO | 6–8 weeks |
 
