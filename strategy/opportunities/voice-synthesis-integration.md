@@ -24,7 +24,7 @@ AudioText's speech-to-text (STT) engine and voice synthesis (TTS) platforms like
   - *PlayHT, Resemble AI* — smaller TTS competitors; open to third-party integrations.
   - *Descript* — offers both STT (transcription) and limited TTS (voice cloning / Overdub). Closest bundled competitor in the creator segment, but editor-first UX limits API use cases.
   - **Gap:** No platform offers a turnkey STT → intelligence → TTS pipeline API that developer and creator teams can embed without bespoke glue code.
-- **Customer signals:** AudioText users in media verticals have requested voice synthesis export (show notes + AI-dubbed audio). ElevenLabs' own creator community regularly requests higher-quality transcription as input to dubbing workflows. The $500M raise validates that investors see a multi-billion-dollar creator voice economy that AudioText can serve as the STT intelligence layer.
+- **Customer signals:** AudioText users in media verticals have requested voice synthesis export (show notes + AI-dubbed audio) — see feature request threads in `strategy/research/2026-04-28.md` and `media-podcast-pipeline.md` (Risks section). ElevenLabs' public Discord and Reddit community (r/ElevenLabs, ~45K members) regularly surface requests for higher-quality transcription as input to dubbing workflows (source: CreativeWare Web Research Agent, 2026-04-28). The $500M raise — the largest single fundraise in voice AI history — validates that institutional investors see a multi-billion-dollar creator voice economy; AudioText can serve as the STT intelligence layer within it.
 
 ### Technical Leverage
 
@@ -48,7 +48,7 @@ High reuse from existing AudioText infrastructure:
 - **Pricing / margin risk:** If ElevenLabs introduces a managed STT offering (even basic), it may bundle it free to retain TTS customers — commoditising AudioText's integration value. Differentiate through accuracy, intelligence features (summaries, chapter detection), and developer experience rather than raw transcription price.
 - **Data privacy:** Audio passed to ElevenLabs for synthesis may contain PII. Define a clear data-handling policy (no audio retention, only text-in/audio-out for synthesis calls). Required for HIPAA-adjacent use cases.
 - **Open questions:**
-  - Has @fratei confirmed appetite for a commercial partnership / rev-share with ElevenLabs, or is this an API integration only?
+  - Has the CEO/founder confirmed appetite for a commercial partnership / rev-share with ElevenLabs, or is this an API integration only?
   - What is the voice synthesis volume estimate from current AudioText media-vertical users?
 
 ### Decision
