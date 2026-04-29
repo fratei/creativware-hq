@@ -217,6 +217,28 @@ jobs:
             // Rolling window for commit scanning (avoids re-reporting old commits every audit cycle).
             const AUDIT_WINDOW_DAYS = 7;
 
+            // Build a set of short (7-char) commit SHAs that were already reviewed in recently
+            // closed CISO security issues.  Scanning a 2× rolling window ensures we capture any
+            // SHA that could still appear in the current audit window even if reported a few days ago.
+            const reviewedShas = new Set();
+            try {
+              const lookbackDate = new Date(Date.now() - AUDIT_WINDOW_DAYS * 2 * 24 * 3600 * 1000).toISOString();
+              const { data: closedSecIssues } = await github.rest.issues.listForRepo({
+                owner, repo: hqRepo, state: 'closed', labels: 'security',
+                since: lookbackDate, per_page: 50,
+              });
+              for (const issue of closedSecIssues) {
+                if (!issue.labels.some(l => l.name === 'agent/ciso')) continue;
+                const matches = [...(issue.body || '').matchAll(/Commit\s+([0-9a-f]{7,40})\b/gi)];
+                for (const m of matches) reviewedShas.add(m[1].toLowerCase().slice(0, 7));
+              }
+              if (reviewedShas.size > 0) {
+                console.log(`🔒 Skipping already-reviewed SHA(s): ${[...reviewedShas].join(', ')}`);
+              }
+            } catch (e) {
+              console.log(`⚠️ Could not load reviewed SHAs: ${e.message}`);
+            }
+
             for (const product of products) {
               const repo = product.repo.replace(/^[^/]+\//, '');
               try {
@@ -228,6 +250,8 @@ jobs:
                 const reportedShas = new Set();
                 for (const c of commits) {
                   if (reportedShas.has(c.sha)) continue;
+                  // Skip SHAs already reviewed in a recently closed CISO security issue.
+                  if (reviewedShas.has(c.sha.slice(0, 7).toLowerCase())) continue;
                   const msg = c.commit.message || '';
                   const msgLower = msg.toLowerCase();
 
