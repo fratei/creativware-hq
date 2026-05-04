@@ -3,7 +3,7 @@
 **Status:** validated
 **Owner:** CPO + CTO
 **Created:** 2026-04-24
-**Last Updated:** 2026-04-28
+**Last Updated:** 2026-05-04
 
 ### Problem / Pain Point
 
@@ -19,6 +19,7 @@ Sales teams lose revenue because insights from customer calls are buried in reco
 
 - **TAM/SAM estimate:** Sales enablement & conversation intelligence market ~$2B in 2025, expected ~$5B by 2028 (Gartner); direct SAM for SMB/mid-market ~$400M
 - **Competitor landscape:** Gong ($7.25B valuation), Chorus (acquired by ZoomInfo), Salesloft Conversation Intelligence, Fireflies.ai (SMB-friendly). Gap: all major players are expensive (Gong $100–$200/seat/mo) and target enterprise. No strong affordable alternative for 10–100 seat teams.
+  - *Deepgram* — STT infrastructure leader; **raised $130M Series C at $1.3B valuation (Apr 2026, The SaaS News / Reuters)**. Deepgram powers the transcription layer used by several conversation intelligence competitors (including Fireflies.ai). Their capital infusion could accelerate a move up the value stack into conversation intelligence and sales call analytics — turning a foundational API vendor into a direct application-layer competitor.
 - **Customer signals:** AudioText users in sales verticals have requested CRM integration and call summaries. Market surveys show 60%+ of sales managers want automated call coaching but can't justify enterprise pricing.
 
 ### Technical Leverage
@@ -40,6 +41,7 @@ High reuse from existing AudioText infrastructure:
 - Call recording consent and compliance requirements vary by jurisdiction (must address before GA)
 - Model accuracy for sales-specific jargon and objection patterns needs fine-tuning
 - Distribution: need partnerships or integrations with dialer software (Aircall, Dialpad, etc.)
+- **New risk (May 2026):** Deepgram raised $130M Series C at $1.3B valuation (Apr 2026). As the STT infrastructure layer under several competitors (Fireflies.ai, etc.), Deepgram now has significant capital to expand vertically into conversation intelligence and sales call analytics — accelerating a potential shift from infrastructure partner to direct competitor. AudioText must differentiate on accuracy, sales-specific fine-tuning, and affordable pricing before Deepgram's next product cycle closes this window.
 
 ### Decision
 
