@@ -3,7 +3,7 @@
 **Status:** researching
 **Owner:** CPO Agent (HQ)
 **Created:** 2026-04-25
-**Last Updated:** 2026-05-04
+**Last Updated:** 2026-05-05
 
 ### Problem / Pain Point
 
@@ -68,3 +68,9 @@ High reuse from existing AudioText infrastructure:
 
 - [ ] Approved by @fratei
 - [ ] Linked to implementation issue: #
+
+---
+
+*Flip $20M Series A signal first actioned: [strategy/research/2026-04-29.md](../research/2026-04-29.md)*  
+*Signal re-confirmed in research briefs: [2026-05-05](../research/2026-05-05.md) (AM + PM) — recurring VC conviction in verticalized AI customer service strengthens this opportunity's market evidence.*  
+*Brief updated by Copilot Agent — CreativeWare HQ*
