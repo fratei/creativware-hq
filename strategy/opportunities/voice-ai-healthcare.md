@@ -1,4 +1,4 @@
-# Voice AI in Healthcare
+# Voice AI for Healthcare (Patient Engagement)
 
 **Status:** researching
 **Owner:** CPO Agent (HQ)
@@ -7,64 +7,64 @@
 
 ### Problem / Pain Point
 
-Healthcare organisations — hospital systems, large medical groups, and payer networks — handle enormous inbound call volumes for appointment scheduling, medication refill requests, symptom triage, billing enquiries, and patient navigation. Traditional IVR systems frustrate patients, front-desk staff are overwhelmed, and after-hours calls go unanswered, leading to missed appointments and poorer care outcomes. The administrative burden of voice-based patient communication is a known cost driver: US health systems spend an estimated $8.3B annually on patient-facing administrative calls. AI-powered conversational voice agents that can handle routine interactions end-to-end — while escalating complex cases to a human — represent a significant cost-reduction and patient-experience opportunity. This signal is directly validated by Hyro ($45M raise, May 2026, Cornell Tech) — a voice AI platform already deployed across major health systems — and by AssemblyAI's "Medical Mode" launch (Slator, 2026), signalling growing institutional commitment to the healthcare voice AI vertical.
+Healthcare providers — hospitals, clinics, dental practices, specialist offices — handle enormous volumes of routine patient communications: appointment scheduling, prescription refill requests, symptom triage, post-visit follow-ups, and FAQ answering. Front-desk staff and call centres are chronically under-resourced; hold times of 10–20 minutes are common, and after-hours calls go unanswered. Patient satisfaction (HCAHPS scores) and operational efficiency both suffer. AI-powered voice solutions that can handle these high-volume, structured interactions free clinical and administrative staff for higher-value work. Hyro's $45M raise (May 2026, Cornell Tech) is the clearest market signal yet that investors believe enterprise health systems are ready to deploy voice AI at scale for patient-facing communications. This is further reinforced by AssemblyAI's "Medical Mode" launch (Slator, 2026), signalling that infrastructure vendors are also prioritising healthcare as a strategic vertical.
 
 ### Target ICP (Ideal Customer Profile)
 
-- **Industry/vertical:** Healthcare — hospital systems (100+ beds), large outpatient medical groups, specialty clinics (dental chains, orthopedics, dermatology), and health plan (payer) member-services contact centres
-- **Company size:** Mid-market to enterprise; organisations with 5,000+ patient interactions per month where even 20% call deflection yields measurable ROI
-- **Buyer persona:** VP of Patient Experience / Chief Digital Officer / IT Director seeking to reduce administrative call volume, improve after-hours access, and lower cost-per-interaction without sacrificing patient satisfaction (HCAHPS/NPS scores)
+- **Industry/vertical:** Healthcare — hospital systems, multi-site clinic networks, specialty practices (dental, dermatology, orthopedics), urgent care chains, telehealth platforms
+- **Company size:** 50–5,000 staff; large enough to have a dedicated patient communication / call centre function, but not so large that they are locked into legacy Nuance/Epic deployments
+- **Buyer persona:** VP of Patient Experience / Head of Revenue Cycle / Practice Administrator seeking to reduce call abandonment rates, extend after-hours availability, and lower per-interaction cost without sacrificing patient trust or HIPAA compliance
 
 ### Market Evidence
 
-- **TAM/SAM estimate:** US healthcare administrative AI market estimated $6B+ and growing at ~29% CAGR (2025–2030); patient-facing voice AI specifically is a $1.5–2B sub-segment; global expansion adds significant upside
+- **TAM/SAM estimate:** Global healthcare AI market ~$30B (2026) growing to $110B+ (2031); patient engagement AI sub-segment ~$2.5B growing to ~$9B by 2030 (~27% CAGR); US healthcare administrative burden alone represents $250B+ annually — voice AI can automate a meaningful share of that
 - **Competitor landscape:**
-  - *Hyro* — **⚠️ Direct competitor. Raised $45M (Cornell Tech Studio, May 2026) specifically for Voice AI in Healthcare; deployed across hospital systems and health plans; strong brand in this vertical; head start on HIPAA compliance and healthcare-specific conversational flows**
-  - *Nuance (Microsoft)* — dragon ambient clinical intelligence (DAX) is focused on clinician dictation/documentation; does not address patient-facing scheduling/navigation use case; enterprise pricing and complex implementation
-  - *Orbita* — conversational voice for healthcare patient engagement; lower profile, appears to lack Hyro's scale post its raise
-  - *AssemblyAI Medical Mode* — adding healthcare-specific transcription accuracy (clinical vocabulary, HIPAA-grade processing); primarily a developer/API play, not an end-to-end patient voice agent solution; signals the infrastructure layer is commoditising
-  - *Google CCAI / Amazon Connect* — general-purpose contact centre AI platforms; require deep configuration for healthcare; not HIPAA-out-of-the-box without additional partner services
-  - **Gap:** No affordable, self-service AI voice agent platform for mid-market medical groups and specialty clinic chains; Hyro targets large enterprise health systems; the 200–5,000 patient-calls/day segment is under-served
-- **Customer signals:** Hyro's $45M raise at a reported 3–5x revenue multiple confirms enterprise willingness to pay in this vertical. AssemblyAI's Medical Mode launch (2026) signals that STT infrastructure vendors see healthcare as a priority vertical. Multiple HackerNews discussions on real-time voice AI at sub-500ms latency confirm the technical feasibility bar has been crossed.
+  - *Hyro* — Cornell Tech spinout; just raised $45M Series C (May 2026); focuses on large health systems (Mayo Clinic, Weill Cornell, Jefferson Health); enterprise sales motion with long cycles; does not serve independent practices or mid-market clinic chains — **this is the clearest whitespace**
+  - *Nuance/Microsoft DAX* — ambient clinical documentation (doctor↔patient conversation, EHR auto-fill); different use case (clinical notes, not patient engagement); enterprise-only; deeply integrated with Epic EHR
+  - *Orbita* — healthcare voice AI; smaller funding, less market traction than Hyro; primarily web-based chat, limited phone/voice depth
+  - *Syllable* — AI for healthcare call centres; Series B funded; focused on call routing + messaging, less conversational AI depth
+  - *Luma Health* — patient engagement platform (messaging-first, not voice AI); competes at the workflow layer
+  - *AssemblyAI Medical Mode* — healthcare-specific STT accuracy and HIPAA-grade processing; a developer/API layer, not an end-to-end patient voice agent — signals the infrastructure is commoditising
+  - **Gap:** No affordable (<$500/site/mo), voice-first patient engagement AI that a 5–50-seat medical or dental practice can activate without a 12-month enterprise implementation cycle
+- **Customer signals:** Hyro's $45M raise at scale validates enterprise demand; the SMB/mid-market healthcare segment (practices with 5–50 admin staff) has no purpose-built, self-serve voice AI option; AudioText's existing healthcare and dental contacts in the user base represent a warm discovery channel
 
 ### Technical Leverage
 
-Moderate reuse from existing AudioText infrastructure, with healthcare-specific additions required:
+Moderate reuse from existing AudioText infrastructure:
 
-- **Core STT:** AudioText's real-time WebSocket transcription is the backbone of live call processing — directly reusable for patient-call transcription
-- **Speaker turn detection:** Existing diarization handles 2-speaker phone calls; patient intent classification can be layered via GPT-4o prompt engineering on live transcript streams
+- **Core STT:** Production-grade transcription handles clinical terminology adequately for non-clinical patient engagement (scheduling, FAQ); no EHR-level clinical accuracy required for this use case
+- **Speaker turn detection / diarization:** Handles 2-speaker patient-front-desk call format well
 - **New build required:**
-  - **HIPAA compliance layer:** Business Associate Agreement (BAA) infrastructure, data-at-rest and in-transit encryption to HIPAA standards, access controls, and audit logging — this is the critical-path gate; estimated 8–12 weeks to achieve HIPAA-eligible infrastructure (shorter than full HIPAA certification if a BAA-capable hosting arrangement is used)
-  - **Healthcare conversational flows:** Pre-built intents for appointment booking (Epic/Cerner/Athena calendar API integration), medication refill routing, symptom triage escalation, insurance/billing enquiry, and after-hours emergency escalation
-  - **EHR / scheduling system connectors:** Epic MyChart, Cerner, Athena Health, and Kareo integrations required for appointment availability queries and booking confirmation
-  - **Telephony integration:** Twilio Voice / SIP trunking for inbound patient call handling (same stack as AI Voice Receptionist SMB brief)
-  - **TTS layer:** High-quality, warm-sounding voice synthesis (ElevenLabs or similar) — critical for patient trust and adoption
-  - **Compliance reporting:** Call transcripts redacted of PHI for QA, patient consent capture, and opt-out handling per HIPAA and state regulations
+  - Telephony integration: Twilio Voice / SIP for inbound patient calls (same stack as AI Voice Receptionist SMB — can share infrastructure)
+  - HIPAA-compliant data handling: BAA with cloud providers; PHI encryption at rest and in transit; audit logging — this is a one-time compliance investment that unlocks multiple healthcare verticals
+  - Healthcare-specific conversation flows: Appointment scheduling (EHR integration via Athena Health / Kareo APIs for SMB practices), symptom triage script, prescription refill routing, after-hours escalation
+  - TTS layer: ElevenLabs or similar for natural, empathetic patient-facing voice quality
+  - Patient verification module: DOB + policy ID validation before PHI disclosure (HIPAA requirement)
 
 ### Revenue Potential
 
-- **Pricing model:** Platform fee + per-interaction pricing — e.g., Starter $499/mo (up to 1,000 patient interactions/mo, 1 location), Growth $1,499/mo (up to 5,000 interactions/mo, 3 locations), Enterprise custom (health system-wide, Epic/Cerner integration, dedicated CSM); overage at $0.40/interaction; annual contracts at 15% discount
-- **Path to first paying customer:** Target mid-size specialty clinic chains (dental, orthopedics) with high call volumes and limited IT staff → activate a forwarded main number → 30-day pilot with full call logs and deflection metrics → convert when cost-per-interaction drops below front-desk cost
-- **Estimated time to revenue:** 20–24 weeks from project start to first paid customer (HIPAA compliance work and EHR integrations are the critical-path items; shorter if a BAA-only arrangement is sufficient for pilot customers)
+- **Pricing model:** Site-based subscription — e.g., Starter $299/mo (1 practice location, 500 AI-handled calls/mo), Growth $599/mo (3 locations, 2,000 calls/mo, EHR scheduling integration), Enterprise custom pricing for health system deployments; overage at $0.15/call
+- **Path to first paying customer:** 2–3 dental or specialty practices already in AudioText's user base → activate a forwarded call number, demo appointment booking + FAQ handling → 60-day pilot with call deflection metrics → convert to paid when hold times drop measurably
+- **Estimated time to revenue:** 16–20 weeks from project start to first paid site (HIPAA BAA set-up, telephony integration, and EHR scheduling connector are the critical-path items)
 
 ### Risks & Open Questions
 
-- HIPAA compliance is the critical-path gate and a material engineering/legal investment; without a valid BAA and PHI-safe data handling, no US healthcare customer can sign a contract — do not start GTM before this is in place
-- Hyro ($45M, May 2026) has a significant head start in large health systems; differentiation must focus on mid-market accessibility, faster onboarding, and transparent pricing
-- EHR integration complexity is high — Epic and Cerner APIs require certification programs that add 4–8 weeks to the integration timeline; starting with scheduling-only (no EHR write-back) reduces scope for an MVP
-- Patient trust is critical: AI voice agents in healthcare face higher scrutiny than consumer or SMB contexts; the agent must clearly disclose it is AI (FTC guidelines + state laws) and provide easy escalation to human staff
-- Healthcare procurement cycles can be 6–12 months for enterprise health systems; mid-market specialty clinics are faster but have smaller budgets
-- AssemblyAI's Medical Mode commoditises the STT accuracy layer — differentiation must come from the conversational flow, EHR integration depth, and compliance posture, not raw transcription quality
+- HIPAA compliance is non-negotiable — BAA with cloud sub-processors, PHI encryption, and audit logging must be first-class from day one; do not ship a healthcare product without legal review
+- Healthcare sales cycles are longer than SMB general; even mid-market practices involve legal, compliance, and clinical champion buy-in; budget for 3–6 months from prospect to signed contract
+- EHR integration complexity: the SMB practice market is fragmented across 50+ EHR systems; prioritise Athena Health (large SMB installed base) and Kareo/Modernizing Medicine for specialty practices before expanding
+- Hyro has a head start on large health systems; avoid competing directly — target independent practices and mid-market clinic groups (sub-500 staff) that Hyro's enterprise sales motion cannot serve profitably
+- Voice AI impersonating a human must disclose it is an AI (FTC regulations, state-level rules); patient-facing contexts add sensitivity — disclosure UX and opt-out flows are required
+- Failure modes in healthcare carry higher stakes than in other verticals — incorrect symptom triage or scheduling error has patient safety implications; define clear scope (administrative tasks only, no clinical advice) and escalation to human staff for any ambiguous situations
 
 ### Whitespace Scoring
 
 | Dimension | Score (1–5) | Notes |
 |-----------|-------------|-------|
-| Market size | 4 | Large TAM in healthcare admin AI; strong institutional willingness to pay; Hyro's raise validates enterprise contract sizes |
-| Technical leverage | 3 | Core STT/diarization are reusable; HIPAA layer and EHR connectors are net-new and represent meaningful engineering investment |
-| Time to revenue | 2 | 20–24 weeks; HIPAA compliance and EHR integrations extend the timeline materially vs. non-regulated verticals |
-| Competitive intensity | 2 | Hyro is well-funded and has a head start in enterprise; Nuance/Microsoft are entrenched in clinical documentation; however the mid-market clinic segment has a real gap |
-| **Total** | **11** | Below ≥14 threshold; monitor closely — re-evaluate when HIPAA compliance infrastructure is in place (planned H2 2026) and if Hyro's focus stays on large enterprise, leaving mid-market open |
+| Market size | 4 | Healthcare admin is a multi-billion dollar TAM; patient engagement AI growing at ~27% CAGR |
+| Technical leverage | 3 | Core STT and telephony stack reusable from SMB Receptionist work; HIPAA BAA and EHR connectors are net-new but scoped |
+| Time to revenue | 2 | 16–20 weeks; HIPAA compliance setup and EHR integration add time vs. general SMB; longer sales cycles |
+| Competitive intensity | 3 | Hyro is well-funded but enterprise-focused; independent practice segment is underserved; no dominant low-cost player |
+| **Total** | **12** | Below ≥14 threshold; monitor closely — re-evaluate once HIPAA compliance infrastructure is in place or if a fast SMB path emerges independent of EHR integration |
 
 ### Decision
 
