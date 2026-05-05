@@ -142,7 +142,23 @@ jobs:
                 owner, repo, pull_number: pr.number,
               });
               if (prDetail.mergeable_state === 'dirty') {
-                console.log(`PR #${pr.number}: merge conflicts — skipping`);
+                // Ask Copilot to resolve merge conflicts (dedup: only comment once)
+                const { data: comments } = await github.rest.issues.listComments({
+                  owner, repo, issue_number: pr.number, per_page: 100,
+                });
+                const alreadyRequested = comments.some(c =>
+                  c.body && c.body.includes('@github-copilot fix') &&
+                  (c.user?.login === 'github-actions[bot]' || c.user?.type === 'Bot')
+                );
+                if (!alreadyRequested) {
+                  await github.rest.issues.createComment({
+                    owner, repo, issue_number: pr.number,
+                    body: '@github-copilot fix\n\n> 🤖 Merge conflicts detected — asking Copilot to resolve automatically.',
+                  });
+                  console.log(`🔧 Asked Copilot to fix conflicts in PR #${pr.number}`);
+                } else {
+                  console.log(`PR #${pr.number}: merge conflicts, Copilot already requested — waiting`);
+                }
                 continue;
               }
 
