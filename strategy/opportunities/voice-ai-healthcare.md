@@ -7,7 +7,7 @@
 
 ### Problem / Pain Point
 
-Healthcare providers — hospitals, clinics, dental practices, specialist offices — handle enormous volumes of routine patient communications: appointment scheduling, prescription refill requests, symptom triage, post-visit follow-ups, and FAQ answering. Front-desk staff and call centres are chronically under-resourced; hold times of 10–20 minutes are common, and after-hours calls go unanswered. Patient satisfaction (HCAHPS scores) and operational efficiency both suffer. AI-powered voice solutions that can handle these high-volume, structured interactions free clinical and administrative staff for higher-value work. Hyro's $45M raise (May 2026, Cornell Tech) is the clearest market signal yet that investors believe enterprise health systems are ready to deploy voice AI at scale for patient-facing communications.
+Healthcare providers — hospitals, clinics, dental practices, specialist offices — handle enormous volumes of routine patient communications: appointment scheduling, prescription refill requests, symptom triage, post-visit follow-ups, and FAQ answering. Front-desk staff and call centres are chronically under-resourced; hold times of 10–20 minutes are common, and after-hours calls go unanswered. Patient satisfaction (HCAHPS scores) and operational efficiency both suffer. AI-powered voice solutions that can handle these high-volume, structured interactions free clinical and administrative staff for higher-value work. Hyro's $45M raise (May 2026, Cornell Tech) is the clearest market signal yet that investors believe enterprise health systems are ready to deploy voice AI at scale for patient-facing communications. This is further reinforced by AssemblyAI's "Medical Mode" launch (Slator, 2026), signalling that infrastructure vendors are also prioritising healthcare as a strategic vertical.
 
 ### Target ICP (Ideal Customer Profile)
 
@@ -24,6 +24,7 @@ Healthcare providers — hospitals, clinics, dental practices, specialist office
   - *Orbita* — healthcare voice AI; smaller funding, less market traction than Hyro; primarily web-based chat, limited phone/voice depth
   - *Syllable* — AI for healthcare call centres; Series B funded; focused on call routing + messaging, less conversational AI depth
   - *Luma Health* — patient engagement platform (messaging-first, not voice AI); competes at the workflow layer
+  - *AssemblyAI Medical Mode* — healthcare-specific STT accuracy and HIPAA-grade processing; a developer/API layer, not an end-to-end patient voice agent — signals the infrastructure is commoditising
   - **Gap:** No affordable (<$500/site/mo), voice-first patient engagement AI that a 5–50-seat medical or dental practice can activate without a 12-month enterprise implementation cycle
 - **Customer signals:** Hyro's $45M raise at scale validates enterprise demand; the SMB/mid-market healthcare segment (practices with 5–50 admin staff) has no purpose-built, self-serve voice AI option; AudioText's existing healthcare and dental contacts in the user base represent a warm discovery channel
 
@@ -72,5 +73,5 @@ Moderate reuse from existing AudioText infrastructure:
 
 ---
 
-*Signal source: [Cornell Tech Studio Startup Hyro Raises $45 Million to Scale Voice AI in Healthcare — Cornell Tech (2026-05-03)](https://news.google.com/rss/articles/CBMiXEFVX3lxTE9ETFVFWTVKaHlXSmRPanJUNTZmVnMwQ0NCeWpST0Y1bWdRU05zU0ZNU1ZVZExoN0FnR2ZraHJ0Ynk2VnpSaktGQzExaWRNdVdzUkZDSkhoT3ptREpS?oc=5)*  
+*Signal source: [Cornell Tech Studio Startup Hyro Raises $45 Million to Scale Voice AI in Healthcare — Cornell Tech (2026-05-01)](https://news.google.com/rss/articles/CBMiXEFVX3lxTE9ETFVFWTVKaHlXSmRPanJUNTZmVnMwQ0NCeWpST0Y1bWdRU05zU0ZNU1ZVZExoN0FnR2ZraHJ0Ynk2VnpSaktGQzExaWRNdVdzUkZDSkhoT3ptREpS?oc=5)*  
 *Brief created by Copilot Agent — CreativeWare HQ*

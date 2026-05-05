@@ -37,6 +37,7 @@ All gaps are scored on four dimensions (1–5 each). Threshold for opportunity b
 | Contact Center & Support QA | 4 | 4 | 3 | 3 | **14** | ✅ contact-center-qa.md |
 | AI Voice Receptionist (SMB) | 4 | 3 | 2 | 3 | **12** | ✅ ai-voice-receptionist-smb.md |
 | Medical Dictation / Clinical | 4 | 3 | 2 | 4 | **13** | ❌ Below threshold |
+| Healthcare Voice AI (Patient Engagement) | 4 | 3 | 2 | 3 | **12** | ❌ Below threshold — see voice-ai-healthcare.md; Hyro $45M raise (May 2026) validates market but confirms strong competition |
 | Legal Deposition | 3 | 3 | 2 | 4 | **12** | ❌ Below threshold |
 
 > **Scoring key:** Market size (1=niche, 5=large TAM); Technical leverage (1=build from scratch, 5=very high AudioText reuse); Time to revenue (1=slow/12+ months, 5=fast/<6 weeks); Competitive intensity (1=very crowded/hard to win, 5=near-empty/easy to enter). **Higher scores always indicate more favourable conditions.** For competitive intensity, a score of 5 means few strong competitors (good for us); 1 means the segment is saturated.
@@ -87,8 +88,8 @@ All gaps are scored on four dimensions (1–5 each). Threshold for opportunity b
 |---------|-------|----------------------|
 | AI Voice Receptionist (SMB) | 12 | Telephony integration and TTS partnership add complexity; Beside ($32M Series A, Apr 2026) is a direct competitor with a head start; re-evaluate in Q3 2026 if competitor traction stalls or ElevenLabs partnership becomes viable |
 | Medical Dictation / Clinical | 13 | Time to revenue penalised by HIPAA certification (12–18 months); requires clinical vocabulary fine-tuning beyond current infrastructure |
+| Healthcare Voice AI (Patient Engagement) | 12 | **⚠️ New signal (May 2026):** Hyro raised $45M (Cornell Tech) specifically for patient-facing voice AI in hospitals and health systems; validates the market but confirms well-funded competition; HIPAA BAA and EHR connectors are the critical-path gates — re-evaluate once HIPAA compliance infrastructure is in place (H2 2026). See [`voice-ai-healthcare.md`](voice-ai-healthcare.md). |
 | Legal Deposition | 12 | Niche market; long enterprise sales cycles; chain-of-custody compliance adds significant engineering scope |
-| Healthcare Voice AI (Patient Engagement) | 12 | HIPAA BAA and EHR connectors add time-to-revenue penalty; Hyro ($45M Series C, May 2026) validates enterprise demand but owns the large health-system segment; independent-practice whitespace is real but sales cycles are long — re-evaluate once HIPAA compliance infrastructure is in place; see [`voice-ai-healthcare.md`](voice-ai-healthcare.md) |
 
 ---
 
