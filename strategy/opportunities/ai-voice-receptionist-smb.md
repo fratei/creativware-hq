@@ -18,8 +18,9 @@ Small businesses — salons, dental offices, law firms, plumbers, restaurants, r
 ### Market Evidence
 
 - **TAM/SAM estimate:** ~32M small businesses in the US alone; virtual/outsourced receptionist market ~$5–8B globally; AI-addressable SAM for software-based AI receptionists estimated $1–2B and growing at 30%+ CAGR driven by voice AI investment wave (2025–2026 funding signals)
+- **Signal reinforcement (2026-05-02):** The Beside $32M raise (Fortune, Apr 2026) re-appeared as a top market-move signal in the 2026-05-02 Web Research Intelligence Brief alongside broader voice AI funding news (ElevenLabs $500M, Deepgram $130M). Continued industry prominence of this story indicates Beside is actively gaining press traction; the window to build a differentiated, lower-cost SMB alternative is narrowing.
 - **Competitor landscape:**
-  - *Beside* — raised $32M Series A (Apr 2026, Fortune) specifically targeting AI receptionist for SMBs; signal confirmed across CreativeWare research briefs 2026-04-28 through 2026-05-02; product is early-stage; geographic focus unclear; no dominant mindshare yet
+  - *Beside* — raised $32M Series A (Apr 2026, Fortune) specifically targeting AI receptionist for SMBs; signal confirmed across CreativeWare research briefs 2026-04-28 through 2026-05-02; still early-stage but gaining sustained media visibility across multiple research cycles (Apr–May 2026); geographic focus unclear; no dominant mindshare yet, but fundraising gives 18–24-month runway to establish a moat
   - *Giga* — raised $61M (Fortune, May 2026) for enterprise voice AI, starting with DoorDash; enterprise focus leaves SMB segment open
   - *Hyro* — raised $45M Series C (May 2026, Cornell Tech) to scale Voice AI in Healthcare; focused on large hospital systems and clinic networks; does not serve general SMBs but validates that voice AI receptionists have strong market pull in the adjacent healthcare vertical (dental, specialist practices within our ICP are underserved by Hyro's enterprise motion) — see [`voice-ai-healthcare.md`](voice-ai-healthcare.md)
   - *Ruby Receptionists / AnswerConnect* — human + hybrid AI; expensive ($200–600/mo); human agents are the bottleneck; not truly AI-native
@@ -65,13 +66,15 @@ Moderate-to-high reuse from existing AudioText infrastructure:
 | Market size | 4 | Tens of millions of SMBs globally; direct revenue leakage from missed calls is a highly felt pain |
 | Technical leverage | 3 | Core STT is production-ready; telephony stack and TTS integration are net-new but achievable via third-party APIs |
 | Time to revenue | 2 | 12–16 weeks; telephony licensing and LLM agent loop reliability testing add scope vs. pure transcription products |
-| Competitive intensity | 3 | Beside is well-funded but SMB-focused early; Giga ($61M) targets enterprise (different ICP); xAI/Microsoft entering the infrastructure layer but not SMB SaaS; no dominant AI-native SMB receptionist yet |
-| **Total** | **12** | Below ≥14 threshold; urgency is rising — Beside is gaining consistent media traction (6+ daily research cycles, Apr–May 2026); re-evaluate in 30 days or if Beside announces GA/pricing |
+| Competitive intensity | 3 | Beside is now well-funded ($32M Series A) and gaining sustained media traction across multiple weekly research cycles (Apr–May 2026); Giga ($61M) targets enterprise (different ICP); xAI/Microsoft entering infrastructure layer but not SMB SaaS; still no dominant AI-native SMB receptionist; human services remain vulnerable — urgency to act is rising |
+| **Total** | **12** | Below ≥14 threshold; urgency elevated — Beside's continued press visibility (6+ daily research cycles, Apr–May 2026) confirms the market is real; re-score to ≥14 if AudioText signs first telephony pilot, Beside announces GA/pricing, or if Beside ships a public product |
 
 ### Decision
 
 - [ ] Approved by @fratei
 - [ ] Linked to implementation issue: #
+
+**2026-05-04 review:** Signal re-confirmed in 2026-05-02 research scan. Beside's sustained media visibility (featured across multiple weekly intelligence briefs) confirms market demand is real and competitor clock is ticking. Recommend escalating to @fratei for go/no-go decision before Beside ships a public product.
 
 ---
 
