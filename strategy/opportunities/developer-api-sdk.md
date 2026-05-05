@@ -3,7 +3,7 @@
 **Status:** validated
 **Owner:** CPO + CTO
 **Created:** 2026-04-24
-**Last Updated:** 2026-05-04
+**Last Updated:** 2026-05-05
 
 ### Problem / Pain Point
 
@@ -20,7 +20,7 @@ Developers building applications that need audio transcription, speaker diarizat
 - **TAM/SAM estimate:** Global speech recognition API market ~$2.5B in 2025, growing ~20% YoY; developer tier SAM ~$300M
 - **Competitor landscape:**
   - *AssemblyAI* — developer-focused, strong docs; Voice Agent API now GA
-  - *Deepgram* — low-latency, real-time; **raised $130M Series C at $1.3B valuation (Apr 2026); expanded Flux model to 10 languages with mid-call switching for voice agents (May 2026)** — accelerating DX improvements and multilingual capabilities
+  - *Deepgram* — low-latency, real-time; **raised $130M Series C at $1.3B valuation (Apr 2026); expanded Flux model to 10 languages with mid-call switching for voice agents (May 2026); announced enterprise voice AI partnership with IBM (May 2026)** — accelerating DX improvements, multilingual capabilities, and enterprise distribution
   - *Rev AI* — accuracy-focused; no pay-as-you-go
   - *OpenAI Whisper* — free OSS but no managed API SLAs or support
   - *xAI/Grok* — launched standalone STT + TTS APIs targeting enterprise voice developers (May 2026)
