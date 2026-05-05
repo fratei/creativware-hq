@@ -18,7 +18,15 @@ Sales teams lose revenue because insights from customer calls are buried in reco
 ### Market Evidence
 
 - **TAM/SAM estimate:** Sales enablement & conversation intelligence market ~$2B in 2025, expected ~$5B by 2028 (Gartner); direct SAM for SMB/mid-market ~$400M
-- **Competitor landscape:** Gong ($7.25B valuation), Chorus (acquired by ZoomInfo), Salesloft Conversation Intelligence, Fireflies.ai (SMB-friendly). Deepgram — the core speech-to-text API underpinning many voice-AI apps — **raised $130M Series C at $1.3B valuation (Apr 2026, The SaaS News / Reuters)**; their increased capitalisation is accelerating STT accuracy improvements and real-time API capabilities that power competitors like Gong and Fireflies at the infrastructure layer, while also raising the risk of upstack expansion into conversation intelligence and sales call analytics. Gap: all major application-layer players are expensive (Gong $100–$200/seat/mo) and target enterprise. No strong affordable alternative for 10–100 seat teams.
+- **Competitor landscape:**
+  - *Gong* — $7.25B valuation; enterprise sales intelligence leader ($100–$200/seat/mo); out of reach for SMBs
+  - *Chorus* — acquired by ZoomInfo; enterprise-tier pricing
+  - *Salesloft* — enterprise conversation intelligence; not SMB-friendly
+  - *Fireflies.ai* — SMB-friendly meeting transcription; lacks deep call scoring and CRM auto-fill
+  - *Natter* — **raised $23M to scale enterprise AI conversation intelligence (May 2026)**; direct competitor in conversation scoring and deal intelligence; targets enterprise, not SMB
+  - *Giga* — **raised $61M to expand enterprise voice AI, starting with DoorDash (May 2026)**; targets very large enterprises with voice AI workflows; validates enterprise appetite but confirms SMB/mid-market gap remains
+  - *Deepgram* — STT infrastructure layer underpinning many voice-AI apps; **raised $130M Series C at $1.3B valuation (Apr 2026)**; accelerating STT accuracy and real-time API capabilities that power competitors at the infrastructure layer, while raising the risk of upstack expansion into conversation intelligence
+  - **Gap:** All major application-layer players are expensive (Gong $100–$200/seat/mo) and target enterprise. No strong affordable alternative for 10–100 seat teams.
 - **Customer signals:** AudioText users in sales verticals have requested CRM integration and call summaries. Market surveys show 60%+ of sales managers want automated call coaching but can't justify enterprise pricing.
 
 ### Technical Leverage
